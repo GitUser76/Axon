@@ -39,7 +39,8 @@ export async function POST(req: Request) {
     ? (data?.correct_attempts ?? 0) + 1
     : data?.correct_attempts ?? 0;
 
-  // ⚡ Upsert with ON CONFLICT
+  // ⚡ Upsert with ON CONFLICT?
+
   const { data: upserted, error: upsertError } = await supabase
     .from("student_progress")
     .upsert(
@@ -51,7 +52,7 @@ export async function POST(req: Request) {
         last_attempt_at: new Date().toISOString(),
       },
       {
-        onConflict: ["student_id", "lesson_slug"], // <--- critical!
+        onConflict: ["student_id", "lesson_slug"] as any, // <--- critical!
       }
     )
     .select();
