@@ -124,6 +124,7 @@ export default function HomePage() {
               className="block p-4 mb-3 border rounded hover:bg-gray-100"
             >
               {s.subject.charAt(0).toUpperCase() + s.subject.slice(1)}
+              &nbsp;&nbsp;&nbsp;&nbsp;
             </Link>
           ))}
         </>
