@@ -80,6 +80,15 @@ export default function HomePage() {
 
   return (
     <div className="p-8 max-w-3xl mx-auto">
+      <p className="font-medium">
+            🚀 This platform is in early access. Progress is saved, and lessons
+            improve over time.
+          </p>
+          <p>
+            We’re inviting a small group of students to try an AI learning tool
+            that adapts to their level.
+          </p>
+          <br></br><br></br>
       {/* Login */}
       {!activeStudent && (
         <div className="mb-8">

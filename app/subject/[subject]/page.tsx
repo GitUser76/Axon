@@ -85,6 +85,15 @@ export default function SubjectPage() {
 
   return (
     <div style={{ maxWidth: 800, margin: "0 auto", padding: 24 }}>
+      <p className="font-medium">
+            🚀 This platform is in early access. Progress is saved, and lessons
+            improve over time.
+          </p>
+          <p>
+            We’re inviting a small group of students to try an AI learning tool
+            that adapts to their level.
+          </p>
+          <br></br><br></br>
       <Breadcrumbs items={[{ label: "Home", href: "/" }, { label: subject }]} />
       <h1 style={{ marginBottom: 24 , fontWeight: 'bold', color: "#1310a5" }}>📚 {subject}</h1>
 
