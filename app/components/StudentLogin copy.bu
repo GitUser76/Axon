@@ -3,35 +3,27 @@
 import { useEffect, useState } from "react";
 import { createClient } from "../lib/supabase";
 
-export type Student = {
+type Student = {
   id: string;
   name: string;
   email: string;
   grade: string;
 };
 
-interface StudentLoginProps {
-  students?: Student[]; // optional, can be passed from parent
-  onSelect?: (student: Student) => void; // callback when student is selected
-}
-
-export default function StudentLogin({ students: propStudents, onSelect }: StudentLoginProps) {
-  const [students, setStudents] = useState<Student[]>(propStudents || []);
+export default function StudentLogin() {
+  const [students, setStudents] = useState<Student[]>([]);
   const [email, setEmail] = useState("");
   const [error, setError] = useState("");
 
-  // Fetch students if not passed via props
   useEffect(() => {
-    if (!propStudents) {
-      const supabase = createClient();
-      supabase
-        .from("students")
-        .select("id, name, email, grade")
-        .then((res) => {
-          if (res.data) setStudents(res.data);
-        });
-    }
-  }, [propStudents]);
+    const supabase = createClient();
+    supabase
+      .from("students")
+      .select("id, name, email, grade")
+      .then((res) => {
+        if (res.data) setStudents(res.data);
+      });
+  }, []);
 
   const handleLogin = () => {
     if (!students.length) {
@@ -48,7 +40,6 @@ export default function StudentLogin({ students: propStudents, onSelect }: Stude
       return;
     }
 
-    // Save to localStorage & cookies
     localStorage.setItem("student_id", student.id);
     localStorage.setItem("student_name", student.name);
     localStorage.setItem("student_grade", student.grade);
@@ -56,18 +47,13 @@ export default function StudentLogin({ students: propStudents, onSelect }: Stude
     document.cookie = `student_grade=${student.grade}; path=/`;
 
     setError("");
-
-    // Call callback if provided
-    if (onSelect) {
-      onSelect(student);
-    } else {
-      location.reload(); // fallback behavior
-    }
+    location.reload();
   };
 
   return (
     <div className="min-h-[60vh] flex items-center justify-center px-4">
       <div className="w-full max-w-md bg-white shadow-lg rounded-xl p-8 border">
+        
         {/* Intro */}
         <div className="mb-6 text-sm text-gray-600 space-y-2">
           <p className="font-medium">
@@ -79,7 +65,7 @@ export default function StudentLogin({ students: propStudents, onSelect }: Stude
             that adapts to their level.
           </p>
         </div>
-
+        <br></br>
         {/* Title */}
         <h2 className="text-2xl font-bold mb-5 text-center">Student Login</h2>
 

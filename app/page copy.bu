@@ -6,8 +6,7 @@ import { createClient } from "./lib/supabase";
 import StudentLogin from "@/app/components/StudentLogin";
 
 type Subject = { subject: string };
-type Student = { id: string; name: string; email: string, grade:string };
-
+type Student = { id: string; name: string; email: string; grade: number };
 
 export default function HomePage() {
   const [subjects, setSubjects] = useState<Subject[]>([]);
@@ -15,16 +14,40 @@ export default function HomePage() {
   const [activeStudent, setActiveStudent] = useState<Student | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const supabase = createClient();
+
+  // ----------------------------
+  // Load students + restore session
+  // ----------------------------
   useEffect(() => {
-    const supabase = createClient();
-    const studentId = localStorage.getItem("student_id");
-    console.log(studentId);
+    supabase
+      .from("students")
+      .select("id, name, email, grade")
+      .order("name")
+      .then(({ data, error }) => {
+        if (!error && data) {
+          setStudents(data);
 
+          const storedId = localStorage.getItem("student_id");
+          if (storedId) {
+            const found = data.find((s) => s.id === storedId);
+            if (found) setActiveStudent(found);
+          }
+        }
+        setLoading(false);
+      });
+  }, []);
 
-    // Load subjects
+  // ----------------------------
+  // Load subjects BASED ON GRADE
+  // ----------------------------
+  useEffect(() => {
+    if (!activeStudent) return;
+
     supabase
       .from("concept_units")
-      .select("subject")
+      .select("subject, difficulty")
+      .lte("difficulty", activeStudent.grade)
       .not("subject", "is", null)
       .then(({ data, error }) => {
         if (!error && data) {
@@ -34,52 +57,33 @@ export default function HomePage() {
           setSubjects(uniqueSubjects);
         }
       });
-
-    // Load students
-    supabase
-      .from("students")
-      .select("id, name, email")
-      .order("name")
-      .then(({ data, error }) => {
-        if (!error && data) {
-          setStudents(data);
-
-          // Check localStorage for active student
-          const storedId = localStorage.getItem("student_id");
-          if (storedId) {
-            const found = data.find((s) => s.id === storedId);
-            if (found) setActiveStudent(found);
-          }
-        }
-      })
-      .finally(() => setLoading(false));
-  }, []);
+  }, [activeStudent]);
 
   // ----------------------------
-  // Logout function
+  // Logout
   // ----------------------------
   const handleLogout = () => {
-    localStorage.removeItem("student_id"); // clear storage
-    setActiveStudent(null); // reset state
+    localStorage.removeItem("student_id");
+    setActiveStudent(null);
+    setSubjects([]);
     location.reload();
   };
 
   // ----------------------------
-  // Handle student login
+  // Login select
   // ----------------------------
   const handleStudentSelect = (student: Student) => {
     localStorage.setItem("student_id", student.id);
-    localStorage.setItem("student_grade", student.grade);
-    
     setActiveStudent(student);
-    
   };
 
   if (loading) return <p>Loading…</p>;
 
   return (
     <div className="p-8 max-w-3xl mx-auto">
-      {/* Show login if no active student */}
+      {/* Login */}
+
+      
       {!activeStudent && (
         <div className="mb-8">
           <h1 className="text-3xl font-bold mb-4">Login as a Student</h1>
@@ -87,24 +91,36 @@ export default function HomePage() {
         </div>
       )}
 
-      {/* Active student info + Logout */}
+      {/* Active student header */}
       {activeStudent && (
         <div className="mb-6 flex justify-between items-center p-4 border rounded bg-blue-50">
-          
+          <div>
+            <p className="font-semibold">👋 {activeStudent.name}</p>
+            <p className="text-sm text-gray-600">
+              You are at Grade Level: {activeStudent.grade}
+            </p>
+          </div>
+          <br></br>
+
           <button
             onClick={handleLogout}
             className="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600"
           >
-            Logout 
+            Logout
           </button>
         </div>
       )}
 
-      {/* Subjects only visible if student is active */}
+      {/* Subjects */}
       {activeStudent && (
-        <><br></br>
+        <>
+        <br></br>
           <h1 className="text-3xl font-bold mb-6">Choose a subject</h1>
-          
+
+          {subjects.length === 0 && (
+            <p className="text-gray-500">No subjects available at this level yet.</p>
+          )}
+
           {subjects.map((s) => (
             <Link
               key={s.subject}
@@ -112,7 +128,8 @@ export default function HomePage() {
               className="block p-4 mb-3 border rounded hover:bg-gray-100"
             >
               {s.subject.charAt(0).toUpperCase() + s.subject.slice(1)}
-              &nbsp;&nbsp;
+              
+            &nbsp;&nbsp;&nbsp;&nbsp;
             </Link>
           ))}
         </>

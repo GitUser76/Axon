@@ -3,15 +3,14 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { createClient } from "./lib/supabase";
-import StudentLogin from "@/app/components/StudentLogin";
+import StudentLogin, { Student as StudentType } from "@/app/components/StudentLogin";
 
 type Subject = { subject: string };
-type Student = { id: string; name: string; email: string; grade: number };
 
 export default function HomePage() {
   const [subjects, setSubjects] = useState<Subject[]>([]);
-  const [students, setStudents] = useState<Student[]>([]);
-  const [activeStudent, setActiveStudent] = useState<Student | null>(null);
+  const [students, setStudents] = useState<StudentType[]>([]);
+  const [activeStudent, setActiveStudent] = useState<StudentType | null>(null);
   const [loading, setLoading] = useState(true);
 
   const supabase = createClient();
@@ -72,7 +71,7 @@ export default function HomePage() {
   // ----------------------------
   // Login select
   // ----------------------------
-  const handleStudentSelect = (student: Student) => {
+  const handleStudentSelect = (student: StudentType) => {
     localStorage.setItem("student_id", student.id);
     setActiveStudent(student);
   };
@@ -82,11 +81,10 @@ export default function HomePage() {
   return (
     <div className="p-8 max-w-3xl mx-auto">
       {/* Login */}
-
-      
       {!activeStudent && (
         <div className="mb-8">
           <h1 className="text-3xl font-bold mb-4">Login as a Student</h1>
+          {/* ✅ Pass props correctly */}
           <StudentLogin students={students} onSelect={handleStudentSelect} />
         </div>
       )}
@@ -100,7 +98,6 @@ export default function HomePage() {
               You are at Grade Level: {activeStudent.grade}
             </p>
           </div>
-          <br></br>
 
           <button
             onClick={handleLogout}
@@ -114,7 +111,6 @@ export default function HomePage() {
       {/* Subjects */}
       {activeStudent && (
         <>
-        <br></br>
           <h1 className="text-3xl font-bold mb-6">Choose a subject</h1>
 
           {subjects.length === 0 && (
@@ -128,8 +124,6 @@ export default function HomePage() {
               className="block p-4 mb-3 border rounded hover:bg-gray-100"
             >
               {s.subject.charAt(0).toUpperCase() + s.subject.slice(1)}
-              
-            &nbsp;&nbsp;&nbsp;&nbsp;
             </Link>
           ))}
         </>
