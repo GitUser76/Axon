@@ -11,7 +11,7 @@ type Props = {
 
 export default function Breadcrumbs({ items }: Props) {
   return (
-    <nav style={{ fontSize: 14, marginBottom: 24 }}>
+    <nav style={{ fontSize: 16, marginBottom: 24 }}>
       {items.map((item, index) => (
         <span key={index}>
           {item.href ? (

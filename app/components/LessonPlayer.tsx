@@ -360,7 +360,8 @@ export default function LessonPlayer({ lesson, prevLesson, nextLesson }: Props) 
             <>
               <p><strong>Practice {aiPracticeIndex + 1} / {aiPracticeQuestions.length}</strong></p>
               <p>{currentAiPractice.question}</p>
-              {currentAiPractice.hint && <p>Hint: {currentAiPractice.hint}</p>}
+              {currentAiPractice.hint && 
+              <p>Hint: {currentAiPractice.hint}</p>}
               <input value={answer} onChange={(e) => setAnswer(e.target.value)} className="border p-2 rounded mb-2 w-full" />
               <button onClick={handleAiPracticeCheck} className="px-4 py-2 bg-blue-600 text-white rounded">Submit</button>
               {feedback && <p className="mt-2">{feedback}</p>}
