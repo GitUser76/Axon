@@ -259,6 +259,38 @@ export default function LessonPlayer({ lesson, prevLesson, nextLesson }: Props) 
   // ------------------------- RENDER -------------------------
   return (
     <div style={{ maxWidth: 700, margin: "40px auto" }}>
+      
+      {/* Progress Bar */}
+      <div className="w-full overflow-x-auto mb-6">
+        <div className="min-w-[600px] flex items-center justify-between relative">
+          <div className="absolute top-5 left-0 right-0 h-1 bg-gray-300" />
+          <div
+            className="absolute top-5 left-0 h-1 bg-blue-600 transition-all duration-500"
+            style={{ width: `${(currentStepIndex / (steps.length - 1)) * 100}%` }}
+          />
+          {steps.map((s, i) => {
+            const isComplete = i < currentStepIndex;
+            const isActive = i === currentStepIndex;
+            return (
+              <div key={s.key} className="flex flex-col items-center flex-1 relative">
+                <div
+                  className={`z-10 w-10 h-10 flex items-center justify-center rounded-full text-sm font-bold border-2
+                    ${isComplete ? "bg-green-600 border-green-600 text-white" : isActive ? "bg-blue-600 border-blue-600 text-white ring-4 ring-blue-100" : "bg-white border-gray-400 text-gray-500"}`}
+                >
+                  {isComplete ? "✓" : i + 1}
+                </div>
+                <span
+                  className={`mt-2 text-xs font-medium text-center whitespace-nowrap
+                    ${isActive ? "text-blue-700" : isComplete ? "text-green-700" : "text-gray-500"}`}
+                >
+                  {s.label}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+      
       {step === "teach" && (
         <div>
           {lesson.teach_intro && <p className="mb-2">{lesson.teach_intro}</p>}
