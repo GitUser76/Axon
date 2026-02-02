@@ -280,6 +280,9 @@ export default function LessonPlayer({ lesson, prevLesson, nextLesson }: Props) 
 
       {step === "example" && (
         <div>
+          <button className="px-4 py-2 bg-blue-600 text-white rounded" onClick={() => setStep("teach")}>
+           ⬅️ Back To Lesson
+          </button><br></br><br></br>
           {lesson.example_question && <p><strong>Example:</strong> {lesson.example_question}</p>}
           {lesson.example_steps && (
             <ul className="list-decimal ml-6 mb-2">
@@ -298,6 +301,10 @@ export default function LessonPlayer({ lesson, prevLesson, nextLesson }: Props) 
 
       {step === "check" && currentCheck && (
         <div>
+      
+          <button className="px-4 py-2 bg-blue-600 text-white rounded" onClick={() => setStep("example")}>
+           ⬅️ Back To Example
+          </button><br></br>
           {reteachText && <div className="bg-blue-50 p-3 mb-2"><strong>📘 Reteach</strong><p>{reteachText}</p></div>}
           <p><strong>Check {checkIndex + 1} / {lesson.check.length}</strong></p>
           <p>{currentCheck.question}</p>
@@ -311,6 +318,10 @@ export default function LessonPlayer({ lesson, prevLesson, nextLesson }: Props) 
 
       {step === "practice" && (
         <div>
+          <br/>
+          <button className="px-4 py-2 bg-blue-600 text-white rounded" onClick={() => setStep("check")}>
+            ⬅️ Back To Checking
+          </button>
           {aiPracticeLoading ? (
             <p>Generating practice questions...</p>
           ) : currentAiPractice ? (
