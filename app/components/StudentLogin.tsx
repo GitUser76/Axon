@@ -27,6 +27,7 @@ export default function StudentLogin({ students: propStudents, onSelect }: Stude
       supabase
         .from("students")
         .select("id, name, email, grade")
+        .eq("live", true)
         .then((res) => {
           if (res.data) setStudents(res.data);
         });
