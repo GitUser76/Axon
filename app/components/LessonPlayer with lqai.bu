@@ -38,6 +38,7 @@ type Props = {
 };
 
 
+
 export default function LessonPlayer({ lesson, prevLesson, nextLesson }: Props) {
   const [studentId, setStudentId] = useState<string | null>(null);
   const [hasCompleted, setHasCompleted] = useState(false);

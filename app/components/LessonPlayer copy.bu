@@ -3,24 +3,30 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 
-type Check = { question: string; answer: string; advisory?: string };
+const MAX_AI_ATTEMPTS = 3;
+
+type Check = {
+  question: string;
+  answer: string;
+  advisory?: string;
+  answer_keywords?: string[];
+};
+
 type Practice = { question: string; answer: string; hint?: string };
 
 type Lesson = {
   title: string;
-  learningObjective: string;
-  difficulty: number;
-  slug: string;
-
   teach_intro?: string;
-  teach_key_points?: string[];
+  teach_key_points?: string | string[];
   example_question?: string;
-  example_steps?: string[];
+  example_steps?: string | string[] | string[];
   example_answer?: string;
-
-  explanation: { text: string };
+  explanation?: { text: string };
   check: Check[];
   practice?: Practice[];
+  difficulty: number;
+  slug: string;
+  learningObjective: string;
 };
 
 type NavLesson = { slug: string; title: string };
@@ -30,15 +36,12 @@ type Props = {
   prevLesson?: NavLesson | null;
   nextLesson?: NavLesson | null;
 };
-const steps = ["Teach", "Example", "Check", "Practice", "Complete"];
 
 export default function LessonPlayer({ lesson, prevLesson, nextLesson }: Props) {
+  // ------------------------- STATES -------------------------
   const [studentId, setStudentId] = useState<string | null>(null);
   const [hasCompleted, setHasCompleted] = useState(false);
-
-  const [step, setStep] = useState<
-    "teach" | "example" | "explanation" | "check" | "practice" | "complete"
-  >("teach");
+  const [step, setStep] = useState<"teach" | "example" | "check" | "practice" | "complete">("teach");
 
   const [answer, setAnswer] = useState("");
   const [feedback, setFeedback] = useState("");
@@ -48,10 +51,38 @@ export default function LessonPlayer({ lesson, prevLesson, nextLesson }: Props) 
   const [loadingAI, setLoadingAI] = useState(false);
   const [reteachText, setReteachText] = useState<string | null>(null);
 
-  const normalize = (v: string) => v.toLowerCase().trim();
+  // ------------------------- AI PRACTICE STATES -------------------------
+  const [aiPracticeQuestions, setAiPracticeQuestions] = useState<Practice[]>([]);
+  const [aiPracticeIndex, setAiPracticeIndex] = useState(0);
+  const [aiPracticeLoading, setAiPracticeLoading] = useState(false);
 
+  const [aiQuestion, setAiQuestion] = useState("");
+  const [aiAnswer, setAiAnswer] = useState("");
+  const [aiLoading, setAiLoading] = useState(false);
+
+  const normalize = (v: string) => v.toLowerCase().trim().replace(/[^\w\s]/g, "");
+
+  const keywordMatch = (studentAnswer: string, keywords: string[]) => {
+    const normalizedStudent = normalize(studentAnswer);
+    return keywords.some((kw) => normalizedStudent.includes(normalize(kw)));
+  };
+
+  const steps: { key: typeof step; label: string }[] = [
+    { key: "teach", label: "Teach" },
+    { key: "example", label: "Example" },
+    { key: "check", label: "Check" },
+    { key: "practice", label: "Practice" },
+    { key: "complete", label: "Complete" },
+  ];
+  const currentStepIndex = steps.findIndex((s) => s.key === step);
+
+  const currentCheck = lesson.check[checkIndex];
+  const currentAiPractice = aiPracticeQuestions[aiPracticeIndex];
+
+  // ------------------------- EFFECTS -------------------------
   useEffect(() => {
-    setStudentId(localStorage.getItem("student_id"));
+    const id = localStorage.getItem("student_id");
+    setStudentId(id);
   }, []);
 
   useEffect(() => {
@@ -63,12 +94,12 @@ export default function LessonPlayer({ lesson, prevLesson, nextLesson }: Props) 
     });
   }, [studentId, lesson.slug, lesson.difficulty]);
 
-  const currentCheck = lesson.check[checkIndex];
-
-  // ------------------ CHECK ------------------
+  // ------------------------- CHECK HANDLER -------------------------
   const handleCheck = async () => {
     if (!studentId) return;
-    const isCorrect = normalize(answer) === normalize(currentCheck.answer);
+
+    const keywords = currentCheck.answer_keywords?.length ? currentCheck.answer_keywords : [currentCheck.answer];
+    const isCorrect = keywordMatch(answer, keywords);
 
     await fetch("/api/progress/attempt", {
       method: "POST",
@@ -78,17 +109,19 @@ export default function LessonPlayer({ lesson, prevLesson, nextLesson }: Props) 
 
     if (isCorrect) {
       setFeedback("✅ Correct!");
-      resetCheckState();
-
-      if (checkIndex + 1 < lesson.check.length) setCheckIndex((i) => i + 1);
-      else if (lesson.practice?.length) startPractice();
-      else completeLesson();
+      setTimeout(() => {
+        resetCheckState();
+        if (checkIndex + 1 < lesson.check.length) {
+          setCheckIndex((i) => i + 1);
+        } else {
+          startAIPractice();
+        }
+      }, 1500);
       return;
     }
 
     setAttempts((prev) => prev + 1);
     setLoadingAI(true);
-
     try {
       const mode = attempts === 0 ? "hint" : "reteach";
       const res = await fetch("/api/ai-feedback", {
@@ -96,7 +129,7 @@ export default function LessonPlayer({ lesson, prevLesson, nextLesson }: Props) 
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           lessonTitle: lesson.title,
-          explanation: lesson.explanation.text,
+          explanation: currentCheck.question,
           question: currentCheck.question,
           studentAnswer: answer,
           correctAnswer: currentCheck.answer,
@@ -105,7 +138,6 @@ export default function LessonPlayer({ lesson, prevLesson, nextLesson }: Props) 
           difficulty: lesson.difficulty,
         }),
       });
-
       const data = await res.json();
       if (mode === "hint") setFeedback(`💡 Hint: ${data.response}`);
       else {
@@ -119,11 +151,33 @@ export default function LessonPlayer({ lesson, prevLesson, nextLesson }: Props) 
     }
   };
 
-  // ------------------ PRACTICE ------------------
-  const handlePracticeCheck = async () => {
-    if (!lesson.practice || !studentId) return;
-    const current = lesson.practice[practiceIndex];
-    const correct = normalize(answer) === normalize(current.answer);
+  // ------------------------- AI PRACTICE -------------------------
+  const startAIPractice = async () => {
+    setStep("practice");
+    setAiPracticeLoading(true);
+    setAiPracticeQuestions([]);
+    setAiPracticeIndex(0);
+    try {
+      const res = await fetch("/api/practice-questions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          lessonTitle: lesson.title,
+          explanation: lesson.teach_intro || lesson.explanation?.text,
+        }),
+      });
+      const data = await res.json();
+      setAiPracticeQuestions(data.questions || []);
+    } catch {
+      setAiPracticeQuestions([]);
+    } finally {
+      setAiPracticeLoading(false);
+    }
+  };
+
+  const handleAiPracticeCheck = async () => {
+    if (!studentId || !currentAiPractice) return;
+    const correct = normalize(answer) === normalize(currentAiPractice.answer);
 
     await fetch("/api/progress/attempt", {
       method: "POST",
@@ -131,24 +185,22 @@ export default function LessonPlayer({ lesson, prevLesson, nextLesson }: Props) 
       body: JSON.stringify({ lesson_slug: lesson.slug, correct }),
     });
 
-    setFeedback(correct ? "✅ Correct!" : `❌ Correct answer: ${current.answer}`);
+    setFeedback(correct ? "✅ Correct!" : `❌ Incorrect. Correct: ${currentAiPractice.answer}`);
     setAnswer("");
 
-    if (practiceIndex + 1 < lesson.practice.length) setPracticeIndex((i) => i + 1);
-    else completeLesson();
+    if (aiPracticeIndex + 1 < aiPracticeQuestions.length) setAiPracticeIndex((i) => i + 1);
+    else setTimeout(() => completeLesson(), 2000);
   };
 
-  // ------------------ COMPLETE ------------------
+  // ------------------------- LESSON COMPLETE -------------------------
   const completeLesson = async () => {
     if (!studentId || hasCompleted) return;
     setHasCompleted(true);
-
     await fetch("/api/progress/complete", {
       method: "POST",
       headers: { "Content-Type": "application/json", "x-student-id": studentId },
       body: JSON.stringify({ lesson_slug: lesson.slug }),
     });
-
     setStep("complete");
   };
 
@@ -159,86 +211,163 @@ export default function LessonPlayer({ lesson, prevLesson, nextLesson }: Props) 
     setReteachText(null);
   };
 
-  const startPractice = () => {
-    setPracticeIndex(0);
-    setAnswer("");
-    setFeedback("");
-    setStep("practice");
+  // ------------------------- AI LESSON Q&A -------------------------
+  const handleAiQuestion = async () => {
+    if (!aiQuestion.trim()) return;
+    setAiLoading(true);
+    setAiAnswer("");
+    try {
+      const res = await fetch("/api/lesson-question", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          question: aiQuestion,
+          lessonTitle: lesson.title,
+          explanation: lesson.teach_intro || lesson.explanation?.text,
+        }),
+      });
+      const data = await res.json();
+      setAiAnswer(data.answer || "Sorry, no answer received.");
+    } catch {
+      setAiAnswer("Error fetching answer.");
+    } finally {
+      setAiLoading(false);
+    }
   };
 
-  // ------------------ UI ------------------
+  // ------------------------- RENDER -------------------------
   return (
     <div style={{ maxWidth: 700, margin: "40px auto" }}>
-      <h2>{lesson.learningObjective}</h2>
-      <p style={{ color: "#666" }}>Difficulty: {lesson.difficulty}+</p>
+      {/* Progress Bar */}
+      <div className="w-full overflow-x-auto mb-6">
+        <div className="min-w-[600px] flex items-center justify-between relative">
+          <div className="absolute top-5 left-0 right-0 h-1 bg-gray-300" />
+          <div
+            className="absolute top-5 left-0 h-1 bg-blue-600 transition-all duration-500"
+            style={{ width: `${(currentStepIndex / (steps.length - 1)) * 100}%` }}
+          />
+          {steps.map((s, i) => {
+            const isComplete = i < currentStepIndex;
+            const isActive = i === currentStepIndex;
+            return (
+              <div key={s.key} className="flex flex-col items-center flex-1 relative">
+                <div
+                  className={`z-10 w-10 h-10 flex items-center justify-center rounded-full text-sm font-bold border-2
+                    ${isComplete ? "bg-green-600 border-green-600 text-white" : isActive ? "bg-blue-600 border-blue-600 text-white ring-4 ring-blue-100" : "bg-white border-gray-400 text-gray-500"}`}
+                >
+                  {isComplete ? "✓" : i + 1}
+                </div>
+                <span
+                  className={`mt-2 text-xs font-medium text-center whitespace-nowrap
+                    ${isActive ? "text-blue-700" : isComplete ? "text-green-700" : "text-gray-500"}`}
+                >
+                  {s.label}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
 
       {/* TEACH */}
       {step === "teach" && (
-        <>
-          <p>{lesson.teach_intro}</p>
+        <div>
+          {lesson.teach_intro && <p className="mb-2">{lesson.teach_intro}</p>}
           {lesson.teach_key_points && (
-            <ul>
-              {lesson.teach_key_points.map((p, i) => (
-                <li key={i}>• {p}</li>
+            <ul className="list-disc ml-6 mb-2">
+              {(Array.isArray(lesson.teach_key_points)
+                ? lesson.teach_key_points
+                : lesson.teach_key_points?.split("\n") || []
+              ).map((kp, idx) => (
+                <li key={idx}>{kp}</li>
               ))}
             </ul>
           )}
-          <button onClick={() => setStep("example")}>See Example</button>
-        </>
+
+          <button className="px-4 py-2 bg-blue-600 text-white rounded" onClick={() => setStep("example")}>
+            ➡️ Next: Example
+          </button>
+        </div>
       )}
 
       {/* EXAMPLE */}
       {step === "example" && (
-        <>
-          <h3>Worked Example</h3>
-          <p><strong>Question:</strong> {lesson.example_question}</p>
-          {lesson.example_steps?.map((s, i) => <p key={i}>Step {i + 1}: {s}</p>)}
-          <p><strong>Answer:</strong> {lesson.example_answer}</p>
-          <button onClick={() => setStep("explanation")}>Now You Try</button>
-        </>
-      )}
+        <div>
+          {lesson.example_question && <p><strong>Example:</strong> {lesson.example_question}</p>}
+          {lesson.example_steps && (
+            <ul className="list-decimal ml-6 mb-2">
+              {(Array.isArray(lesson.example_steps)
+                ? lesson.example_steps
+                : lesson.example_steps?.split("\n") || []
+              ).map((step, idx) => (
+                <li key={idx}>{step}</li>
+              ))}
+            </ul>
+          )}
 
-      {/* EXPLANATION */}
-      {step === "explanation" && (
-        <>
-          <p>{lesson.explanation.text}</p>
-          <button onClick={() => setStep("check")}>Start Check</button>
-        </>
+          {lesson.example_answer && <p><strong>Answer:</strong> {lesson.example_answer}</p>}
+          <button className="px-4 py-2 bg-blue-600 text-white rounded" onClick={() => setStep("check")}>
+            ➡️ Next: Check
+          </button>
+        </div>
       )}
 
       {/* CHECK */}
       {step === "check" && (
-        <>
-          {reteachText && <div style={{ background: "#eef" }}>{reteachText}</div>}
+        <div>
+          {reteachText && <div className="bg-blue-50 p-3 mb-2"><strong>📘 Reteach</strong><p>{reteachText}</p></div>}
           <p><strong>Check {checkIndex + 1} / {lesson.check.length}</strong></p>
           <p>{currentCheck.question}</p>
-          <input value={answer} onChange={(e) => setAnswer(e.target.value)} />
-          <button onClick={handleCheck}>{loadingAI ? "Thinking..." : "Submit"}</button>
-          {feedback && <p>{feedback}</p>}
-        </>
+          <input value={answer} onChange={(e) => setAnswer(e.target.value)} className="border p-2 rounded mb-2 w-full" />
+          <button onClick={handleCheck} disabled={loadingAI} className="px-4 py-2 bg-blue-600 text-white rounded">
+            {loadingAI ? "Thinking..." : "Submit"}
+          </button>
+          {feedback && <p className="mt-2">{feedback}</p>}
+        </div>
       )}
 
-      {/* PRACTICE */}
-      {step === "practice" && lesson.practice && (
-        <>
-          <p><strong>Practice {practiceIndex + 1} / {lesson.practice.length}</strong></p>
-          <p>{lesson.practice[practiceIndex].question}</p>
-          <input value={answer} onChange={(e) => setAnswer(e.target.value)} />
-          <button onClick={handlePracticeCheck}>Submit</button>
-          {feedback && <p>{feedback}</p>}
-        </>
+      {/* PRACTICE (AI-generated) */}
+      {step === "practice" && (
+        <div>
+          {aiPracticeLoading ? <p>Generating practice questions...</p> :
+            currentAiPractice ? (
+              <>
+                <p><strong>Practice {aiPracticeIndex + 1} / {aiPracticeQuestions.length}</strong></p>
+                <p>{currentAiPractice.question}</p>
+                <input value={answer} onChange={(e) => setAnswer(e.target.value)} className="border p-2 rounded mb-2 w-full" />
+                <button onClick={handleAiPracticeCheck} className="px-4 py-2 bg-blue-600 text-white rounded">Submit</button>
+                {feedback && <p className="mt-2">{feedback}</p>}
+              </>
+            ) : <p>No practice questions available.</p>
+          }
+        </div>
       )}
 
       {/* COMPLETE */}
       {step === "complete" && (
-        <>
+        <div>
           <p>🎉 Lesson complete!</p>
-          <div style={{ display: "flex", justifyContent: "space-between" }}>
-            {prevLesson ? <Link href={`/lesson/${prevLesson.slug}`}>← {prevLesson.title}</Link> : <span />}
-            {nextLesson ? <Link href={`/lesson/${nextLesson.slug}`}>{nextLesson.title} →</Link> : <span />}
+          <div className="flex justify-between mt-4">
+            {prevLesson ? <Link href={`/lesson/${prevLesson.slug}`}>⬅️ {prevLesson.title}</Link> : <span />}
+            {nextLesson ? <Link href={`/lesson/${nextLesson.slug}`}>{nextLesson.title} ➡️</Link> : <span />}
           </div>
-        </>
+        </div>
       )}
+
+      {/* AI LESSON Q&A */}
+      <div className="mt-8 p-4 border rounded bg-gray-50">
+        <h3 className="font-semibold mb-2">🤖 Ask a question about this lesson</h3>
+        <textarea
+          className="border p-2 w-full rounded mb-2"
+          value={aiQuestion}
+          onChange={(e) => setAiQuestion(e.target.value)}
+          placeholder="Type your question here..."
+        />
+        <button onClick={handleAiQuestion} disabled={aiLoading || !aiQuestion.trim()} className="px-4 py-2 bg-green-900 text-white rounded">
+          {aiLoading ? "Thinking..." : "Ask"}
+        </button>
+        {aiAnswer && <div className="mt-2 p-2 bg-white border rounded"><strong>⭐ Answer:</strong><p>{aiAnswer}</p></div>}
+      </div>
     </div>
   );
 }
