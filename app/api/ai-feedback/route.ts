@@ -53,6 +53,8 @@ ${difficulty}
 Task:
 - Act like a year ${difficulty} teacher
 - Explain briefly why the answer is incorrect
+- Student answered ${studentAnswer} where as the correct answer is ${correctAnswer}
+- Guide how to answer the question correctly, Is it Text or Numerical
 - Give a small hint
 - Do NOT give the full answer
 - Use simple language
@@ -82,6 +84,8 @@ The student is confused.
 Task:
 - Act like a year ${difficulty} teacher
 - Explain the concept again using different wording
+- Student answered ${studentAnswer} where as the correct answer is ${correctAnswer}
+- Guide how to answer the question correctly, Is it Text or Numerical
 - Use a simple example
 - Avoid equations unless necessary
 - Keep it under 5 sentences
