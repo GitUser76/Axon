@@ -11,7 +11,7 @@ type LessonRow = {
   slug: string;
   sub_topic: string | null;
   difficulty: number;
-  concept_id: string; // ⭐ needed for mastery map
+  concept_id: string;
 };
 
 type ProgressRow = {
@@ -56,7 +56,6 @@ export default function SubjectPage() {
         const allLessons = lessonsData || [];
         setLessons(allLessons);
 
-        // Load progress
         supabase
           .from("student_progress")
           .select("lesson_slug, status")
@@ -65,7 +64,6 @@ export default function SubjectPage() {
             const progressRows = progressData || [];
             setProgress(progressRows);
 
-            // Load mastery levels
             supabase
               .from("student_mastery")
               .select("concept_id, mastery_level")
@@ -77,7 +75,6 @@ export default function SubjectPage() {
                 });
                 setMasteryMap(map);
 
-                // Calculate subject mastery %
                 const completed = progressRows.filter(
                   (p) =>
                     p.status === "complete" &&
@@ -116,6 +113,13 @@ export default function SubjectPage() {
 
   const toggleTopic = (topic: string) => {
     setOpenTopics((prev) => ({ ...prev, [topic]: !prev[topic] }));
+  };
+
+  const getMasteryMessage = (level: number) => {
+    if (level >= 5) return { text: "🎉 You’ve mastered this topic! Great work!", color: "#000000" };
+    if (level >= 3) return { text: "⚡ Keep going! You can continue to practice until you’ve mastered this topic.", color: "#df1b1b" };
+    if (level >= 1) return { text: "⚡ You’ve started learning this topic. Keep going!", color: "#000000" };
+    return { text: "🎯 You haven’t started this topic yet. Give it a try!", color: "#6b7280" };
   };
 
   return (
@@ -162,6 +166,7 @@ export default function SubjectPage() {
                 {topicLessons.map((lesson) => {
                   const lessonStatus = progress.find((p) => p.lesson_slug === lesson.slug)?.status;
                   const level = masteryMap[lesson.concept_id] || 0;
+                  const { text: message, color } = getMasteryMessage(level);
 
                   const label =
                     level >= 5 ? "🟢 Mastered" :
@@ -186,6 +191,11 @@ export default function SubjectPage() {
 
                       {/* ⭐ Mastery Label */}
                       <div style={{ fontSize: 14, marginTop: 4 }}>{label}</div>
+
+                      {/* 🔹 Dynamic Encouragement Message (color-coded) */}
+                      <div style={{ fontSize: 12, color, marginTop: 2 }}>
+                        {message}
+                      </div>
                     </div>
                   );
                 })}
