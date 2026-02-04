@@ -1,0 +1,59 @@
+"use client";
+
+import Link from "next/link";
+import { useState } from "react";
+import { usePathname } from "next/navigation";
+import { Geist, Geist_Mono } from "next/font/google";
+import "./globals.css";
+
+import StudentGate from "@/app/components/StudentGate";
+import StudentSwitcher from "@/app/components/StudentSwitcher";
+
+const geistSans = Geist({
+  variable: "--font-geist-sans",
+  subsets: ["latin"],
+});
+
+const geistMono = Geist_Mono({
+  variable: "--font-geist-mono",
+  subsets: ["latin"],
+});
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
+  const [currentStudent, setCurrentStudent] = useState<string | "">("");
+
+  // Pages that are public (no login required)
+  const publicPages = ["/", "/about", "/login"];
+  const isPublic = publicPages.includes(pathname || "/");
+
+  return (
+    <html lang="en">
+      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+        <div className="w-full px-6 py-4">
+
+          {/* Top navigation */}
+          <nav className="flex gap-4 mb-6">
+            <Link href="/">Home</Link>
+            <Link href="/about">About</Link>
+          </nav>
+
+          {/* Student selector visible only on protected pages */}
+          {!isPublic && (
+            <StudentSwitcher
+              activeStudent={currentStudent}
+              onChange={setCurrentStudent}
+            />
+          )}
+
+          {/* 🚦 Block app without active student (protected pages only) */}
+          {isPublic ? (
+            children
+          ) : (
+            <StudentGate>{children}</StudentGate>
+          )}
+        </div>
+      </body>
+    </html>
+  );
+}

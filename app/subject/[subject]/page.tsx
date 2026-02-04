@@ -11,7 +11,7 @@ type LessonRow = {
   slug: string;
   sub_topic: string | null;
   difficulty: number;
-  concept_id: string; // ⭐ needed for mastery map
+  concept_id: string;
 };
 
 type ProgressRow = {
@@ -25,7 +25,7 @@ type MasteryRow = {
 };
 
 // -------------------------
-// Helper: Lesson-level and Subject-level mastery message
+// Helper: Mastery message
 // -------------------------
 function getMasteryMessage(level: number) {
   if (level >= 5) return { text: "🎉 Mastered! Excellent work!", color: "#16a34a" };
@@ -47,6 +47,10 @@ export default function SubjectPage() {
   const [openTopics, setOpenTopics] = useState<Record<string, boolean>>({});
   const [subjectMastery, setSubjectMastery] = useState(0);
 
+  // ⭐ NEW STATS
+  const [completedLessonsCount, setCompletedLessonsCount] = useState(0);
+  const [masteredConceptsCount, setMasteredConceptsCount] = useState(0);
+
   useEffect(() => {
     const grade = Number(localStorage.getItem("student_grade"));
     const studentId = localStorage.getItem("student_id");
@@ -66,7 +70,6 @@ export default function SubjectPage() {
         const allLessons = lessonsData || [];
         setLessons(allLessons);
 
-        // Load progress
         supabase
           .from("student_progress")
           .select("lesson_slug, status")
@@ -75,7 +78,6 @@ export default function SubjectPage() {
             const progressRows = progressData || [];
             setProgress(progressRows);
 
-            // Load mastery levels
             supabase
               .from("student_mastery")
               .select("concept_id, mastery_level")
@@ -87,7 +89,7 @@ export default function SubjectPage() {
                 });
                 setMasteryMap(map);
 
-                // Calculate subject mastery %
+                // Subject mastery %
                 const completed = progressRows.filter(
                   (p) =>
                     p.status === "complete" &&
@@ -99,6 +101,12 @@ export default function SubjectPage() {
                   : 0;
 
                 setSubjectMastery(masteryPercent);
+
+                // ⭐ NEW COUNTS
+                setCompletedLessonsCount(completed);
+                const masteredConcepts = Object.values(map).filter((lvl) => lvl >= 5).length;
+                setMasteredConceptsCount(masteredConcepts);
+
                 setLoading(false);
               });
           });
@@ -128,20 +136,32 @@ export default function SubjectPage() {
     setOpenTopics((prev) => ({ ...prev, [topic]: !prev[topic] }));
   };
 
-  // -------------------------
-  // Get subject-level mastery message
-  // -------------------------
-  const subjectLevel = Math.round(subjectMastery / 20); // convert 0-100% → 0-5
+  const subjectLevel = Math.round(subjectMastery / 20);
   const { text: subjectMessage, color: subjectColor } = getMasteryMessage(subjectLevel);
 
   return (
     <div style={{ maxWidth: 800, margin: "0 auto", padding: 24 }}>
       <Breadcrumbs items={[{ label: "Home", href: "/" }, { label: subject }]} />
+
       <h1 style={{ marginBottom: 24, fontWeight: "bold", color: "#1310a5" }}>
         📚 {subject}
       </h1>
 
-      {/* SUBJECT MASTERY BAR */}
+      
+
+      {/* ⭐ MASTERY LEGEND */}
+      <div style={{ marginTop: 40, padding: 16, background: "#f9fafb", borderRadius: 12, border: "1px solid #e5e7eb" }}>
+        <strong style={{ display: "block", marginBottom: 8 }}>Mastery Levels</strong>
+        <div style={{ fontSize: 14, lineHeight: 1.8 }}>
+          🟢 Mastered — You fully understand this concept<br />
+          🔵 Developing — Keep practicing to master it<br />
+          🟡 Started — You've begun learning this<br />
+          ⚪ Not started — Try this lesson to begin
+        </div>
+      </div>
+      <br></br>
+
+      {/* SUBJECT MASTERY */}
       <div style={{ marginBottom: 30, padding: 16, borderRadius: 12, background: "#eef2ff", border: "1px solid #c7d2fe" }}>
         <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
           <strong>📈 {subject} Mastery</strong>
@@ -150,14 +170,25 @@ export default function SubjectPage() {
         <div style={{ height: 12, background: "#ffffff", borderRadius: 6, overflow: "hidden" }}>
           <div style={{ width: `${subjectMastery}%`, height: "100%", background: subjectMastery === 100 ? "#16a34a" : "#4f46e5" }} />
         </div>
-
-        {/* 🔹 Subject-level encouragement message */}
         <div style={{ fontSize: 13, marginTop: 6, color: subjectColor }}>
           {subjectMessage}
         </div>
       </div>
 
-      {/* LESSONS GROUPED BY TOPIC */}
+      {/* ⭐ QUICK STATS */}
+      <div style={{ display: "flex", gap: 16, marginBottom: 28, flexWrap: "wrap" }}>
+        <div style={{ flex: 1, minWidth: 180, padding: 12, background: "#f0f9ff", borderRadius: 10, border: "1px solid #bae6fd" }}>
+          <div style={{ fontSize: 12, color: "#0369a1" }}>Lessons Completed</div>
+          <div style={{ fontSize: 22, fontWeight: "bold" }}>{completedLessonsCount}</div>
+        </div>
+
+        <div style={{ flex: 1, minWidth: 180, padding: 12, background: "#ecfdf5", borderRadius: 10, border: "1px solid #bbf7d0" }}>
+          <div style={{ fontSize: 12, color: "#15803d" }}>Concepts Mastered</div>
+          <div style={{ fontSize: 22, fontWeight: "bold" }}>{masteredConceptsCount}</div>
+        </div>
+      </div>
+
+      {/* LESSONS */}
       {Object.entries(grouped).map(([topic, topicLessons]) => {
         const percent = getProgressPercent(topicLessons);
         const isOpen = openTopics[topic] ?? true;
@@ -177,6 +208,15 @@ export default function SubjectPage() {
                 <div style={{ width: `${percent}%`, background: percent === 100 ? "#16a34a" : "#2563eb", height: "100%" }} />
               </div>
               <p style={{ fontSize: 12, marginTop: 6 }}>{percent}% complete</p>
+
+              {/* ⭐ Topic encouragement */}
+              <div style={{ fontSize: 12, marginTop: 4, color: percent === 100 ? "#16a34a" : percent > 0 ? "#2563eb" : "#9ca3af" }}>
+                {percent === 100
+                  ? "🎉 Topic mastered!"
+                  : percent > 0
+                  ? "Keep going — you're making progress!"
+                  : "Start this topic to begin mastering it."}
+              </div>
             </button>
 
             {isOpen && (
@@ -185,11 +225,7 @@ export default function SubjectPage() {
                   const lessonStatus = progress.find((p) => p.lesson_slug === lesson.slug)?.status;
                   const level = masteryMap[lesson.concept_id] || 0;
 
-                  const label =
-                    level >= 5 ? "🟢 Mastered" :
-                    level >= 3 ? "🔵 Developing — keep practicing until mastered." :
-                    level >= 1 ? "🟡 Started" :
-                    "⚪ Not started";
+                  const { text, color } = getMasteryMessage(level);
 
                   const bgColor =
                     lessonStatus === "complete" ? "#ecfdf5" :
@@ -206,8 +242,9 @@ export default function SubjectPage() {
                         {lesson.title}
                       </Link>
 
-                      {/* ⭐ Mastery Label */}
-                      <div style={{ fontSize: 14, marginTop: 4 }}>{label}</div>
+                      <div style={{ fontSize: 14, marginTop: 4, color }}>
+                        {text}
+                      </div>
                     </div>
                   );
                 })}

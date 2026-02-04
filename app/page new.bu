@@ -1,0 +1,37 @@
+"use client";
+
+import Link from "next/link";
+
+export default function LandingPage() {
+  return (
+    <div style={{ maxWidth: 800, margin: "0 auto", padding: 40, textAlign: "center" }}>
+      <h1 style={{ fontSize: 48, fontWeight: "bold", color: "#1310a5" }}>🚀 Learn with AI & Gamification</h1>
+      <p style={{ fontSize: 18, marginTop: 20 }}>
+        Personalized lessons, mastery tracking, and gamified learning for kids and parents.
+      </p>
+
+      <div style={{ marginTop: 40 }}>
+        <Link href="/login">
+          <button style={{ padding: "12px 24px", fontSize: 18, background: "#4f46e5", color: "white", borderRadius: 8 }}>
+            Log In / Start Learning
+          </button>
+        </Link>
+      </div>
+
+      <div style={{ marginTop: 60, textAlign: "left", lineHeight: 1.6 }}>
+        <h2>About This App</h2>
+        <p>
+          I'm not a teacher but wanted to help my son with homework and extracurricular education. 
+          This app uses AI and gamification to make learning personalized, engaging, and fun for both parent and child.
+        </p>
+        <h3>Features:</h3>
+        <ul>
+          <li>AI-powered guidance & explanations</li>
+          <li>Mastery tracking for each topic</li>
+          <li>Gamified badges and achievements</li>
+          <li>Practice questions & adaptive challenges</li>
+        </ul>
+      </div>
+    </div>
+  );
+}
