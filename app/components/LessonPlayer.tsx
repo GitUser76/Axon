@@ -43,7 +43,6 @@ type Props = {
 };
 
 export default function LessonPlayer({ lesson, prevLesson, nextLesson }: Props) {
-  // ------------------------- STATES -------------------------
   const [studentId, setStudentId] = useState<string | null>(null);
   const [hasCompleted, setHasCompleted] = useState(false);
   const [step, setStep] = useState<"teach" | "example" | "check" | "practice" | "complete">("teach");
@@ -55,7 +54,6 @@ export default function LessonPlayer({ lesson, prevLesson, nextLesson }: Props) 
   const [loadingAI, setLoadingAI] = useState(false);
   const [reteachText, setReteachText] = useState<string | null>(null);
 
-  // ------------------------- AI PRACTICE STATES -------------------------
   const [aiPracticeQuestions, setAiPracticeQuestions] = useState<Practice[]>([]);
   const [aiPracticeIndex, setAiPracticeIndex] = useState(0);
   const [aiPracticeLoading, setAiPracticeLoading] = useState(false);
@@ -64,10 +62,29 @@ export default function LessonPlayer({ lesson, prevLesson, nextLesson }: Props) 
   const [aiAnswer, setAiAnswer] = useState("");
   const [aiLoading, setAiLoading] = useState(false);
 
-  // ------------------------- ACHIEVEMENT BADGES -------------------------
   const [badges, setBadges] = useState<string[]>([]);
 
-  // ------------------------- HELPERS -------------------------
+  // ------------------ NEW: MASTERY TRACKING ------------------
+  const sendProgress = async (action: string, score?: number) => {
+    if (!studentId) return;
+
+    try {
+      await fetch("/api/progress", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          student_id: studentId,
+          concept_id: lesson.slug,
+          action,
+          score,
+        }),
+      });
+    } catch (err) {
+      console.error("Progress tracking failed", err);
+    }
+  };
+  // -----------------------------------------------------------
+
   const normalize = (v: string) => v.toLowerCase().trim().replace(/[^\w\s]/g, "");
 
   const keywordMatch = (studentAnswer: string, keywords: string[]) => {
@@ -87,7 +104,6 @@ export default function LessonPlayer({ lesson, prevLesson, nextLesson }: Props) 
   const currentCheck = lesson.check[checkIndex];
   const currentAiPractice = aiPracticeQuestions[aiPracticeIndex];
 
-  // ------------------------- EFFECTS -------------------------
   useEffect(() => {
     const id = localStorage.getItem("student_id");
     setStudentId(id);
@@ -100,9 +116,12 @@ export default function LessonPlayer({ lesson, prevLesson, nextLesson }: Props) 
       headers: { "Content-Type": "application/json", "x-student-id": studentId },
       body: JSON.stringify({ lesson_slug: lesson.slug, difficulty: lesson.difficulty }),
     });
+
+    // NEW
+    sendProgress("lesson_view");
+
   }, [studentId, lesson.slug, lesson.difficulty]);
 
-  // ------------------------- CHECK HANDLER -------------------------
   const handleCheck = async () => {
     if (!studentId) return;
 
@@ -120,7 +139,8 @@ export default function LessonPlayer({ lesson, prevLesson, nextLesson }: Props) 
 
     if (isCorrect) {
       setFeedback("✅ Correct!");
-      // Award badge
+      sendProgress("check_correct"); // NEW
+
       if (attempts === 0) setBadges((prev) => [...prev, "⭐ First Try"]);
       else setBadges((prev) => [...prev, "🔁 Persistence"]);
 
@@ -167,7 +187,6 @@ export default function LessonPlayer({ lesson, prevLesson, nextLesson }: Props) 
     }
   };
 
-  // ------------------------- AI PRACTICE -------------------------
   const startAIPractice = async () => {
     setStep("practice");
     setAiPracticeLoading(true);
@@ -205,6 +224,8 @@ export default function LessonPlayer({ lesson, prevLesson, nextLesson }: Props) 
       body: JSON.stringify({ lesson_slug: lesson.slug, correct }),
     });
 
+    if (correct) sendProgress("practice_complete"); // NEW
+
     setFeedback(correct ? "✅ Correct!" : `❌ Not quite. Answer: ${currentAiPractice.answer}`);
     setAnswer("");
 
@@ -219,10 +240,11 @@ export default function LessonPlayer({ lesson, prevLesson, nextLesson }: Props) 
     }
   };
 
-  // ------------------------- LESSON COMPLETE -------------------------
   const completeLesson = async () => {
     if (!studentId || hasCompleted) return;
     setHasCompleted(true);
+
+    sendProgress("assessment_complete", 100); // NEW
 
     await fetch("/api/progress/complete", {
       method: "POST",
@@ -240,7 +262,6 @@ export default function LessonPlayer({ lesson, prevLesson, nextLesson }: Props) 
     setReteachText(null);
   };
 
-  // ------------------------- AI LESSON Q&A -------------------------
   const handleAiQuestion = async () => {
     if (!aiQuestion.trim()) return;
 
@@ -267,9 +288,10 @@ export default function LessonPlayer({ lesson, prevLesson, nextLesson }: Props) 
     }
   };
 
-  // ------------------------- RENDER -------------------------
   return (
     <div style={{ maxWidth: 700, margin: "40px auto" }}>
+      {/* UI unchanged below */}
+
 
       {/* Progress Bar */}
       <div className="w-full overflow-x-auto mb-6">

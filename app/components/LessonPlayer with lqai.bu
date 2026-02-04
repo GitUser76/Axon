@@ -4,8 +4,6 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 
 const MAX_AI_ATTEMPTS = 3;
-const [badges, setBadges] = useState<string[]>([]);
-
 
 type Check = {
   question: string;
@@ -18,7 +16,7 @@ type Practice = {
   question: string;
   answer: string;
   hint?: string;
-  answer_keywords?: string[]; // ✅ NEW — allows partial matching
+  answer_keywords?: string[];
 };
 
 type Lesson = {
@@ -66,6 +64,9 @@ export default function LessonPlayer({ lesson, prevLesson, nextLesson }: Props) 
   const [aiAnswer, setAiAnswer] = useState("");
   const [aiLoading, setAiLoading] = useState(false);
 
+  // ------------------------- ACHIEVEMENT BADGES -------------------------
+  const [badges, setBadges] = useState<string[]>([]);
+
   // ------------------------- HELPERS -------------------------
   const normalize = (v: string) => v.toLowerCase().trim().replace(/[^\w\s]/g, "");
 
@@ -104,7 +105,7 @@ export default function LessonPlayer({ lesson, prevLesson, nextLesson }: Props) 
   // ------------------------- CHECK HANDLER -------------------------
   const handleCheck = async () => {
     if (!studentId) return;
- 
+
     const keywords = currentCheck.answer_keywords?.length
       ? currentCheck.answer_keywords
       : [currentCheck.answer];
@@ -119,6 +120,10 @@ export default function LessonPlayer({ lesson, prevLesson, nextLesson }: Props) 
 
     if (isCorrect) {
       setFeedback("✅ Correct!");
+      // Award badge
+      if (attempts === 0) setBadges((prev) => [...prev, "⭐ First Try"]);
+      else setBadges((prev) => [...prev, "🔁 Persistence"]);
+
       setTimeout(() => {
         resetCheckState();
         if (checkIndex + 1 < lesson.check.length) {
@@ -203,6 +208,10 @@ export default function LessonPlayer({ lesson, prevLesson, nextLesson }: Props) 
     setFeedback(correct ? "✅ Correct!" : `❌ Not quite. Answer: ${currentAiPractice.answer}`);
     setAnswer("");
 
+    if (correct && aiPracticeIndex + 1 >= aiPracticeQuestions.length) {
+      setBadges((prev) => [...prev, "🧠 Practice Pro"]);
+    }
+
     if (aiPracticeIndex + 1 < aiPracticeQuestions.length) {
       setAiPracticeIndex((i) => i + 1);
     } else {
@@ -261,7 +270,7 @@ export default function LessonPlayer({ lesson, prevLesson, nextLesson }: Props) 
   // ------------------------- RENDER -------------------------
   return (
     <div style={{ maxWidth: 700, margin: "40px auto" }}>
-      
+
       {/* Progress Bar */}
       <div className="w-full overflow-x-auto mb-6">
         <div className="min-w-[600px] flex items-center justify-between relative">
@@ -292,7 +301,8 @@ export default function LessonPlayer({ lesson, prevLesson, nextLesson }: Props) 
           })}
         </div>
       </div>
-      
+
+      {/* TEACH */}
       {step === "teach" && (
         <div>
           {lesson.teach_intro && <p className="mb-2">{lesson.teach_intro}</p>}
@@ -312,11 +322,12 @@ export default function LessonPlayer({ lesson, prevLesson, nextLesson }: Props) 
         </div>
       )}
 
+      {/* EXAMPLE */}
       {step === "example" && (
         <div>
           <button className="px-4 py-2 bg-blue-600 text-white rounded" onClick={() => setStep("teach")}>
-           ⬅️ Back To Lesson
-          </button><br></br><br></br>
+            ⬅️ Back To Lesson
+          </button><br/><br/>
           {lesson.example_question && <p><strong>Example:</strong> {lesson.example_question}</p>}
           {lesson.example_steps && (
             <ul className="list-decimal ml-6 mb-2">
@@ -333,12 +344,12 @@ export default function LessonPlayer({ lesson, prevLesson, nextLesson }: Props) 
         </div>
       )}
 
+      {/* CHECK */}
       {step === "check" && currentCheck && (
         <div>
-      
           <button className="px-4 py-2 bg-blue-600 text-white rounded" onClick={() => setStep("example")}>
            ⬅️ Back To Example
-          </button><br></br>
+          </button><br/>
           {reteachText && <div className="bg-blue-50 p-3 mb-2"><strong>📘 Reteach</strong><p>{reteachText}</p></div>}
           <p><strong>Check {checkIndex + 1} / {lesson.check.length}</strong></p>
           <p>{currentCheck.question}</p>
@@ -346,10 +357,15 @@ export default function LessonPlayer({ lesson, prevLesson, nextLesson }: Props) 
           <button onClick={handleCheck} disabled={loadingAI} className="px-4 py-2 bg-blue-600 text-white rounded">
             {loadingAI ? "Thinking..." : "Submit"}
           </button>
-          {feedback && <p className="mt-2">{feedback}</p>}
+          {feedback && (
+            <p className="mt-2 font-semibold" style={{ color: feedback.includes("✅") ? "green" : "red" }}>
+              {feedback}
+            </p>
+          )}
         </div>
       )}
 
+      {/* PRACTICE */}
       {step === "practice" && (
         <div>
           <br/>
@@ -362,11 +378,14 @@ export default function LessonPlayer({ lesson, prevLesson, nextLesson }: Props) 
             <>
               <p><strong>Practice {aiPracticeIndex + 1} / {aiPracticeQuestions.length}</strong></p>
               <p>{currentAiPractice.question}</p>
-              {currentAiPractice.hint && 
-              <p>Hint: {currentAiPractice.hint}</p>}
+              {currentAiPractice.hint && <p>Hint: {currentAiPractice.hint}</p>}
               <input value={answer} onChange={(e) => setAnswer(e.target.value)} className="border p-2 rounded mb-2 w-full" />
               <button onClick={handleAiPracticeCheck} className="px-4 py-2 bg-blue-600 text-white rounded">Submit</button>
-              {feedback && <p className="mt-2">{feedback}</p>}
+              {feedback && (
+                <p className="mt-2 font-semibold" style={{ color: feedback.includes("✅") ? "green" : "red" }}>
+                  {feedback}
+                </p>
+              )}
             </>
           ) : (
             <p>No practice questions available.</p>
@@ -374,9 +393,21 @@ export default function LessonPlayer({ lesson, prevLesson, nextLesson }: Props) 
         </div>
       )}
 
+      {/* COMPLETE */}
       {step === "complete" && (
         <div>
           <p>🎉 Lesson complete!</p>
+
+          {/* Badges */}
+          {badges.length > 0 && (
+            <div className="mt-4 p-3 border rounded bg-yellow-50">
+              <h4 className="font-semibold mb-2">🏆 Achievements Earned</h4>
+              <ul className="list-disc ml-6">
+                {badges.map((b, i) => <li key={i}>{b}</li>)}
+              </ul>
+            </div>
+          )}
+
           <div className="flex justify-between mt-4">
             {prevLesson ? <Link href={`/lesson/${prevLesson.slug}`}>⬅️ {prevLesson.title}</Link> : <span />}
             {nextLesson ? <Link href={`/lesson/${nextLesson.slug}`}>{nextLesson.title} ➡️</Link> : <span />}
@@ -384,6 +415,7 @@ export default function LessonPlayer({ lesson, prevLesson, nextLesson }: Props) 
         </div>
       )}
 
+      {/* AI Q&A */}
       <div className="mt-8 p-4 border rounded bg-gray-50">
         <h3 className="font-semibold mb-2">🤖 Ask a question about this lesson</h3>
         <textarea

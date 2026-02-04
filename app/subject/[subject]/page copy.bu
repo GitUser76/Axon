@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { createClient } from "@/app/lib/supabase";
 import Breadcrumbs from "@/app/components/Breadcrumbs";
 
@@ -15,16 +15,21 @@ type LessonRow = {
 
 type ProgressRow = {
   lesson_slug: string;
-  status: string; // "started" | "complete"
+  status: string;
 };
 
 export default function SubjectPage() {
-  const { subject } = useParams<{ subject: string }>();
+  //const { subject } = useParams<{ subject: string }>();
+  
+  const params = useParams();
+  const subject = params?.subject as string;
+
   const supabase = createClient();
 
   const [lessons, setLessons] = useState<LessonRow[]>([]);
   const [progress, setProgress] = useState<ProgressRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [openTopics, setOpenTopics] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     const grade = Number(localStorage.getItem("student_grade"));
@@ -35,31 +40,20 @@ export default function SubjectPage() {
       return;
     }
 
-    // 1️⃣ Fetch lessons allowed for this student level
     supabase
       .from("concept_units")
       .select("title, slug, sub_topic, difficulty")
       .eq("subject", subject)
       .lte("difficulty", grade)
       .order("difficulty", { ascending: true })
-      .then(({ data: lessonsData, error }) => {
-        if (error) {
-          console.error("Lessons error:", error);
-          setLoading(false);
-          return;
-        }
-
+      .then(({ data: lessonsData }) => {
         setLessons(lessonsData || []);
 
-        // 2️⃣ Fetch student progress
         supabase
           .from("student_progress")
           .select("lesson_slug, status")
           .eq("student_id", studentId)
-          .then(({ data: progressData, error: progressError }) => {
-            if (progressError) {
-              console.error("Progress error:", progressError);
-            }
+          .then(({ data: progressData }) => {
             setProgress(progressData || []);
             setLoading(false);
           });
@@ -68,15 +62,6 @@ export default function SubjectPage() {
 
   if (loading) return <p style={{ padding: 24 }}>Loading lessons…</p>;
 
-  if (!lessons.length)
-    return (
-      <div style={{ padding: 24 }}>
-        <Breadcrumbs items={[{ label: "Home", href: "/" }, { label: subject }]} />
-        <p>No lessons available for your level yet.</p>
-      </div>
-    );
-
-  // 📚 Group lessons by sub-topic
   const grouped = lessons.reduce<Record<string, LessonRow[]>>((acc, lesson) => {
     const key = lesson.sub_topic || "General";
     acc[key] ||= [];
@@ -84,7 +69,6 @@ export default function SubjectPage() {
     return acc;
   }, {});
 
-  // 📊 Progress % per sub-topic
   const getProgressPercent = (topicLessons: LessonRow[]) => {
     const completedCount = topicLessons.filter((lesson) =>
       progress.some(
@@ -95,28 +79,61 @@ export default function SubjectPage() {
     return Math.round((completedCount / topicLessons.length) * 100);
   };
 
+  const toggleTopic = (topic: string) => {
+    setOpenTopics((prev) => ({ ...prev, [topic]: !prev[topic] }));
+  };
+
   return (
     <div style={{ maxWidth: 800, margin: "0 auto", padding: 24 }}>
+      <p className="font-medium">
+            🚀 This platform is in early access. Progress is saved, and lessons
+            improve over time.
+          </p>
+          <p>
+            We’re inviting a small group of students to try an AI learning tool
+            that adapts to their level.
+          </p>
+          <br></br><br></br>
       <Breadcrumbs items={[{ label: "Home", href: "/" }, { label: subject }]} />
-      <h1 style={{ marginBottom: 24 }}>{subject}</h1>
+      <h1 style={{ marginBottom: 24 , fontWeight: 'bold', color: "#1310a5" }}>📚 {subject}</h1>
 
       {Object.entries(grouped).map(([topic, topicLessons]) => {
         const percent = getProgressPercent(topicLessons);
+        const isOpen = openTopics[topic] ?? true;
+
+        // 🎨 Header color logic
+        let headerBg = "#f3f4f6"; // gray (not started)
+        if (percent === 100) headerBg = "#dcfce7"; // green
+        else if (percent > 0) headerBg = "#dbeafe"; // blue
 
         return (
-          <section key={topic} style={{ marginBottom: 40 }}>
-            {/* 🟦 Sub-topic Header */}
-            <div style={{ marginBottom: 8 }}>
-              <h2>{topic}</h2>
+          <section key={topic} style={{ marginBottom: 28 }}>
+            <button
+              onClick={() => toggleTopic(topic)}
+              style={{
+                width: "100%",
+                textAlign: "left",
+                borderRadius: 10,
+                padding: "14px 16px",
+                cursor: "pointer",
+                border: "1px solid #e5e7eb",
+                background: headerBg,
+                transition: "background 0.2s ease",
+              }}
+            >
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <strong style={{ fontSize: 18 }}>🧠 {topic}</strong>
+                <span style={{ fontSize: 18 }}>{isOpen ? "▾" : "▸"}</span>
+              </div>
 
-              {/* 📊 Progress Bar */}
+              {/* Progress Bar */}
               <div
                 style={{
-                  height: 10,
-                  background: "#eee",
-                  borderRadius: 5,
+                  height: 8,
+                  background: "#ffffff",
+                  borderRadius: 4,
                   overflow: "hidden",
-                  marginTop: 6,
+                  marginTop: 10,
                 }}
               >
                 <div
@@ -128,56 +145,58 @@ export default function SubjectPage() {
                   }}
                 />
               </div>
-              <p style={{ fontSize: 12, color: "#555", marginTop: 4 }}>
+
+              <p style={{ fontSize: 12, marginTop: 6 }}>
                 {percent}% complete
               </p>
-            </div>
+            </button>
 
-            {/* 📚 Lessons */}
-            {topicLessons.map((lesson) => {
-              const lessonStatus = progress.find(
-                (p) => p.lesson_slug === lesson.slug
-              )?.status;
+            {isOpen && (
+              <div style={{ marginTop: 12 }}>
+                {topicLessons.map((lesson) => {
+                  const lessonStatus = progress.find(
+                    (p) => p.lesson_slug === lesson.slug
+                  )?.status;
 
-              const bgColor =
-                lessonStatus === "complete"
-                  ? "#ecfdf5" // green
-                  : lessonStatus === "started"
-                  ? "#eff6ff" // light blue
-                  : "white";
-
-              return (
-                <div
-                  key={lesson.slug}
-                  style={{
-                    padding: 12,
-                    border: "1px solid #ddd",
-                    borderRadius: 6,
-                    marginBottom: 10,
-                    background: bgColor,
-                  }}
-                >
-                  <div style={{ fontSize: 14, color: "#666" }}>
-                    Difficulty {lesson.difficulty}+
-                  </div>
-
-                  <Link
-                    href={`/lesson/${lesson.slug}`}
-                    style={{ fontSize: 16, fontWeight: 500 }}
-                  >
-                    {lessonStatus === "complete"
-                      ? "✅ "
+                  const bgColor =
+                    lessonStatus === "complete"
+                      ? "#ecfdf5"
                       : lessonStatus === "started"
-                      ? "🟦 "
-                      : "👉 "}
-                    {lesson.title}
-                  </Link>
-                </div>
-              );
-            })}
+                      ? "#eff6ff"
+                      : "white";
+
+                  return (
+                    <div
+                      key={lesson.slug}
+                      style={{
+                        padding: 12,
+                        border: "1px solid #ddd",
+                        borderRadius: 6,
+                        marginBottom: 10,
+                        background: bgColor,
+                      }}
+                    >
+                      <div style={{ fontSize: 13, color: "#666" }}>
+                        Difficulty {lesson.difficulty}+
+                      </div>
+
+                      <Link href={`/lesson/${lesson.slug}`} style={{ fontSize: 16, fontWeight: 500 }}>
+                        {lessonStatus === "complete"
+                          ? "✅ "
+                          : lessonStatus === "started"
+                          ? "🟦 "
+                          : "👉 "}
+                        {lesson.title}
+                      </Link>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </section>
         );
       })}
     </div>
   );
 }
+ 

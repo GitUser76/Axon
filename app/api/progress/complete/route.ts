@@ -66,8 +66,6 @@ export async function POST(req: Request) {
   // --------------------------------------------------
   // 📊 2️⃣ UPDATE STUDENT_PROGRESS STATUS
   // --------------------------------------------------
-
-  // Get existing attempts so we don't overwrite them
   const { data: progressData, error: selectError } = await supabase
     .from("student_progress")
     .select("attempts, correct_attempts")
@@ -100,7 +98,57 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: progressError }, { status: 500 });
   }
 
-  console.log("✅ Lesson + progress marked complete");
+  // --------------------------------------------------
+  // 🧠 3️⃣ BOOST MASTERY FOR LESSON COMPLETION
+  // --------------------------------------------------
+  const { data: lesson } = await supabase
+    .from("concept_units")
+    .select("concept_id")
+    .eq("slug", lessonSlug)
+    .single();
+
+  if (lesson?.concept_id) {
+    const conceptId = lesson.concept_id;
+
+    // Get existing mastery row
+    const { data: masteryRow } = await supabase
+      .from("student_mastery")
+      .select("mastery_level, xp")
+      .eq("student_id", studentId)
+      .eq("concept_id", conceptId)
+      .maybeSingle();
+
+    const currentLevel = masteryRow?.mastery_level ?? 0;
+    const currentXP = masteryRow?.xp ?? 0;
+
+    // Completion guarantees at least "Developing"
+    const newLevel = Math.max(currentLevel, 3);
+    const xpGain = 20; // you can adjust this or calculate dynamically
+    const newXP = currentXP + xpGain;
+
+    const { error: masteryError } = await supabase
+      .from("student_mastery")
+      .upsert(
+        {
+          student_id: studentId,
+          concept_id: conceptId,
+          mastery_level: newLevel,
+          xp: newXP,
+          last_updated: now,
+        },
+        {
+          onConflict: "student_id,concept_id",
+        }
+      );
+
+    if (masteryError) {
+      console.error("❌ Mastery update failed:", masteryError);
+    } else {
+      console.log(`🧠 Mastery updated: concept ${conceptId}, level ${newLevel}, xp ${newXP}`);
+    }
+  }
+
+  console.log("✅ Lesson + progress + mastery marked complete");
 
   return NextResponse.json({ success: true });
 }
