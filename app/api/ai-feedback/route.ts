@@ -86,8 +86,7 @@ Task:
 - Explain the concept again using different wording
 - Student answered ${studentAnswer} where as the correct answer is ${correctAnswer}
 - Guide how to answer the question correctly, Is it Text or Numerical
-- Use a simple example
-- Avoid equations unless necessary
+- Provide an example
 - Keep it under 5 sentences
 - Be encouraging
 `;

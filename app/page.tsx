@@ -19,23 +19,30 @@ export default function HomePage() {
   // Load students + restore session
   // ----------------------------
   useEffect(() => {
-    supabase
-      .from("students")
-      .select("id, name, email, grade")
-      .order("name")
-      .then(({ data, error }) => {
-        if (!error && data) {
-          setStudents(data);
+  const storedId = localStorage.getItem("student_id");
 
-          const storedId = localStorage.getItem("student_id");
-          if (storedId) {
-            const found = data.find((s) => s.id === storedId);
-            if (found) setActiveStudent(found);
+  supabase
+    .from("students")
+    .select("id, name, email, grade")
+    .order("name")
+    .then(({ data, error }) => {
+      if (!error && data) {
+        setStudents(data);
+
+        if (storedId) {
+          const found = data.find((s) => s.id === storedId);
+          if (found) {
+            setActiveStudent(found);
+          } else {
+            localStorage.removeItem("student_id");
           }
         }
-        setLoading(false);
-      });
-  }, []);
+      }
+
+      setLoading(false);
+    });
+}, []);
+
 
   // ----------------------------
   // Load subjects BASED ON GRADE
@@ -53,6 +60,7 @@ export default function HomePage() {
           const uniqueSubjects = Array.from(
             new Set(data.map((d) => d.subject))
           ).map((s) => ({ subject: s }));
+
           setSubjects(uniqueSubjects);
         }
       });
@@ -65,14 +73,14 @@ export default function HomePage() {
     localStorage.removeItem("student_id");
     setActiveStudent(null);
     setSubjects([]);
-    location.reload();
+    location.reload(); // keeps your original behavior
   };
 
   // ----------------------------
   // Login select
   // ----------------------------
   const handleStudentSelect = (student: StudentType) => {
-    localStorage.setItem("student_id", student.id);
+    localStorage.setItem("student_id", student.id); // REQUIRED for StudentGate
     setActiveStudent(student);
   };
 
@@ -81,19 +89,18 @@ export default function HomePage() {
   return (
     <div className="p-8 max-w-3xl mx-auto">
       <p className="font-medium">
-            🚀 This platform is in early access. Progress is saved, and lessons
-            improve over time.
-          </p>
-          <p>
-            We’re inviting a small group of students to try an AI learning tool
-            that adapts to their level.
-          </p>
-          <br></br><br></br>
+        🚀 This platform is in early access. Progress is saved, and lessons improve over time.
+      </p>
+      <p>
+        We’re inviting a small group of students to try an AI learning tool that adapts to their level.
+      </p>
+
+      <br /><br />
+
       {/* Login */}
-      {!activeStudent && (
+      {!activeStudent && !loading && (
         <div className="mb-8">
           <h1 className="text-3xl font-bold mb-4">Login as a Student</h1>
-          {/* ✅ Pass props correctly */}
           <StudentLogin students={students} onSelect={handleStudentSelect} />
         </div>
       )}
