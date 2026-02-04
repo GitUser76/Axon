@@ -79,6 +79,11 @@ export default function StudentLogin({ students: propStudents, onSelect }: Stude
             We’re inviting a small group of students to try an AI learning tool
             that adapts to their level.
           </p>
+          <br></br>
+          <p>
+            if you want to be a early adopter (try it out whilst it's being developed) then 
+            email me: 
+          </p>
         </div>
 
         {/* Title */}
