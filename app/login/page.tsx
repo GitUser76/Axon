@@ -1,68 +1,120 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { createClient } from "../lib/supabase";
 import { useRouter } from "next/navigation";
-import { createClient } from "@/app/lib/supabase";
 
-export default function LoginPage() {
+export type Student = {
+  id: string;
+  name: string;
+  email: string;
+  grade: string;
+};
+
+interface StudentLoginProps {
+  students?: Student[]; // optional, can be passed from parent
+  onSelect?: (student: Student) => void; // callback when student is selected
+}
+
+export default function StudentLogin({ students: propStudents, onSelect }: StudentLoginProps) {
+  const [students, setStudents] = useState<Student[]>(propStudents || []);
   const [email, setEmail] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
   const router = useRouter();
-  const supabase = createClient();
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
+  // Fetch students if not passed via props
+  useEffect(() => {
+    if (!propStudents) {
+      const supabase = createClient();
+      supabase
+        .from("students")
+        .select("id, name, email, grade")
+        .eq("live", true)
+        .then((res) => {
+          if (res.data) setStudents(res.data);
+        });
+    }
+  }, [propStudents]);
 
-    const { data, error } = await supabase
-      .from("students")
-      .select("id")
-      .eq("email", email)
-      .single();
-
-    if (error || !data) {
-      alert("Student not found. Check email or ask parent to register.");
-      setLoading(false);
+  const handleLogin = () => {
+    if (!students.length) {
+      setError("No students found. Try again later.");
       return;
     }
 
-    // Save session locally
-    localStorage.setItem("student_id", data.id);
+    const student = students.find(
+      (s) => s.email.toLowerCase() === email.toLowerCase().trim()
+    );
 
+    if (!student) {
+      setError("Email not registered.");
+      return;
+    }
+
+    // Save to localStorage & cookies
+    localStorage.setItem("student_id", student.id);
+    localStorage.setItem("student_name", student.name);
+    localStorage.setItem("student_grade", student.grade);
+    document.cookie = `student_id=${student.id}; path=/`;
+    document.cookie = `student_grade=${student.grade}; path=/`;
+
+    setError("");
+
+    // Call callback if provided
+    if (onSelect) {
+      onSelect(student);
+    } else {
     // 👉 Redirect into the learning area
     router.push("/");
+    }
   };
 
   return (
-    <div style={{ maxWidth: 400, margin: "80px auto", padding: 24 }}>
-      <h1 style={{ fontSize: 28, marginBottom: 20 }}>Student Login</h1>
+    <div className="min-h-[60vh] flex items-center justify-center px-4">
+      <div className="w-full max-w-md bg-white shadow-lg rounded-xl p-8 border">
+        {/* Intro */}
+        <div className="mb-6 text-sm text-gray-600 space-y-2">
+          <p className="font-medium">
+            🚀 This platform is in early access. Progress is saved, and lessons
+            improve over time.
+          </p>
+          <p>
+            We’re inviting a small group of students to try an AI learning tool
+            that adapts to their level.
+          </p>
+          <br></br>
+          <p>
+            if you want to be a early adopter (try it out whilst it's being developed) then 
+            email me: 
+          </p>
+        </div>
 
-      <form onSubmit={handleLogin} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+        {/* Title */}
+        <h2 className="text-2xl font-bold mb-5 text-center">Student Login</h2>
+
+        {/* Input */}
         <input
           type="email"
-          placeholder="Student email"
+          placeholder="Enter your email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          required
-          style={{ padding: 10, borderRadius: 6, border: "1px solid #ccc" }}
+          onKeyDown={(e) => e.key === "Enter" && handleLogin()}
+          className="w-full border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none p-3 rounded-lg mb-4 transition"
         />
 
+        {/* Button */}
         <button
-          type="submit"
-          disabled={loading}
-          style={{
-            padding: 12,
-            borderRadius: 6,
-            border: "none",
-            background: "#4f46e5",
-            color: "white",
-            fontWeight: 600,
-            cursor: "pointer",
-          }}
+          onClick={handleLogin}
+          className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 rounded-lg transition shadow-sm"
         >
-          {loading ? "Logging in..." : "Continue Learning"}
+          Login
         </button>
-      </form>
+
+        {/* Error */}
+        {error && (
+          <p className="text-red-600 text-sm mt-4 text-center">{error}</p>
+        )}
+      </div>
     </div>
   );
 }
