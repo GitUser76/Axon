@@ -30,8 +30,16 @@ export default function StudentSwitcher({ activeStudent, onChange }: Props) {
   if (!student) return null;
 
   return (
-    <div className="mb-6 p-2 border rounded bg-gray-50 max-w-sm">
-      <strong>Active Student:</strong> {student.name}
+    <div className="max-w-3xl mx-auto px-6">
+    <div className="mb-6 p-3 border rounded-lg bg-blue-50 flex items-center justify-between text-sm">
+      <span className="text-gray-600">
+        <strong>Active Student:</strong>
+        &nbsp;&nbsp;<span className="font-semibold text-blue-700">{student.name}</span>
+      </span>
+      
     </div>
+</div>
+
+
   );
 }

@@ -43,7 +43,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en">
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         <div className="w-full px-6 py-4">
-          <nav className="mb-6 flex gap-6 text-lg items-center">
+          <nav className="mb-6 flex gap-8 text-lg items-center justify-center">
+
             <Link href="/">Home</Link>
             <Link href="/about">About</Link>
 

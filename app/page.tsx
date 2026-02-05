@@ -108,6 +108,7 @@ export default function HomePage() {
       {/* Active student header */}
       {activeStudent && (
         <div className="mb-6 flex justify-between items-center p-4 border rounded bg-blue-50">
+
           <div>
             <p className="font-semibold">👋 {activeStudent.name}</p>
             <p className="text-sm text-gray-600">

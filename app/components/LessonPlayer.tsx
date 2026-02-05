@@ -292,7 +292,6 @@ export default function LessonPlayer({ lesson, prevLesson, nextLesson }: Props) 
     <div style={{ maxWidth: 700, margin: "40px auto" }}>
       {/* UI unchanged below */}
 
-
       {/* Progress Bar */}
       <div className="w-full overflow-x-auto mb-6">
         <div className="min-w-[600px] flex items-center justify-between relative">
@@ -429,6 +428,7 @@ export default function LessonPlayer({ lesson, prevLesson, nextLesson }: Props) 
               </ul>
             </div>
           )}
+          
 
           <div className="flex justify-between mt-4">
             {prevLesson ? <Link href={`/lesson/${prevLesson.slug}`}>⬅️ {prevLesson.title}</Link> : <span />}
