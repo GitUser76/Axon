@@ -48,6 +48,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <Link href="/">Home</Link>
             <Link href="/about">About</Link>
 
+            {isLoggedIn && (
+              <Link href="/dashboard" className="mr-4">Dashboard</Link>
+            )}
+
+
             {!isLoggedIn && (
               <Link href="/login" className="font-semibold text-blue-600">
                 Login
