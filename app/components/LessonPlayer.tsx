@@ -19,6 +19,15 @@ type Practice = {
   answer_keywords?: string[];
 };
 
+// ---------------------------
+// New: Lesson block types
+// ---------------------------
+type LessonBlock =
+  | { type: "text"; content: string }
+  | { type: "image"; url: string; caption?: string }
+  | { type: "example"; question: string; steps: string[] }
+  | { type: "question"; prompt: string; answer: string };
+
 type Lesson = {
   title: string;
   teach_intro?: string;
@@ -32,6 +41,7 @@ type Lesson = {
   difficulty: number;
   slug: string;
   learningObjective: string;
+  lesson_content?: LessonBlock[]; // NEW
 };
 
 type NavLesson = { slug: string; title: string };
@@ -86,7 +96,6 @@ export default function LessonPlayer({ lesson, prevLesson, nextLesson }: Props) 
   // -----------------------------------------------------------
 
   const normalize = (v: string) => v.toLowerCase().trim().replace(/[^\w\s]/g, "");
-
   const keywordMatch = (studentAnswer: string, keywords: string[]) => {
     const normalizedStudent = normalize(studentAnswer);
     return keywords.some((kw) => normalizedStudent.includes(normalize(kw)));
@@ -117,9 +126,7 @@ export default function LessonPlayer({ lesson, prevLesson, nextLesson }: Props) 
       body: JSON.stringify({ lesson_slug: lesson.slug, difficulty: lesson.difficulty }),
     });
 
-    // NEW
     sendProgress("lesson_view");
-
   }, [studentId, lesson.slug, lesson.difficulty]);
 
   const handleCheck = async () => {
@@ -139,7 +146,7 @@ export default function LessonPlayer({ lesson, prevLesson, nextLesson }: Props) 
 
     if (isCorrect) {
       setFeedback("✅ Correct!");
-      sendProgress("check_correct"); // NEW
+      sendProgress("check_correct");
 
       if (attempts === 0) setBadges((prev) => [...prev, "⭐ First Try"]);
       else setBadges((prev) => [...prev, "🔁 Persistence"]);
@@ -224,7 +231,7 @@ export default function LessonPlayer({ lesson, prevLesson, nextLesson }: Props) 
       body: JSON.stringify({ lesson_slug: lesson.slug, correct }),
     });
 
-    if (correct) sendProgress("practice_complete"); // NEW
+    if (correct) sendProgress("practice_complete");
 
     setFeedback(correct ? "✅ Correct!" : `❌ Not quite. Answer: ${currentAiPractice.answer}`);
     setAnswer("");
@@ -244,7 +251,7 @@ export default function LessonPlayer({ lesson, prevLesson, nextLesson }: Props) 
     if (!studentId || hasCompleted) return;
     setHasCompleted(true);
 
-    sendProgress("assessment_complete", 100); // NEW
+    sendProgress("assessment_complete", 100);
 
     await fetch("/api/progress/complete", {
       method: "POST",
@@ -288,10 +295,42 @@ export default function LessonPlayer({ lesson, prevLesson, nextLesson }: Props) 
     }
   };
 
+  // ----------------------------
+  // Render Lesson Blocks (NEW)
+  // ----------------------------
+  const renderLessonBlock = (block: LessonBlock, idx: number) => {
+    switch (block.type) {
+      case "text":
+        return <p key={idx}>{block.content}</p>;
+      case "image":
+        return (
+          <figure key={idx}>
+            <img src={block.url} alt={block.caption || ""} className="rounded shadow mb-2" />
+            {block.caption && <figcaption className="text-sm text-gray-600">{block.caption}</figcaption>}
+          </figure>
+        );
+      case "example":
+        return (
+          <div key={idx} className="p-4 border rounded bg-gray-50 mb-2">
+            <strong>Example: {block.question}</strong>
+            <ol className="list-decimal ml-5 mt-2">
+              {block.steps.map((step, i) => <li key={i}>{step}</li>)}
+            </ol>
+          </div>
+        );
+      case "question":
+        return (
+          <div key={idx} className="p-4 border rounded bg-blue-50 mb-2">
+            <strong>Try it: {block.prompt}</strong>
+          </div>
+        );
+      default:
+        return null;
+    }
+  };
+
   return (
     <div style={{ maxWidth: 700, margin: "40px auto" }}>
-      {/* UI unchanged below */}
-
       {/* Progress Bar */}
       <div className="w-full overflow-x-auto mb-6">
         <div className="min-w-[600px] flex items-center justify-between relative">
@@ -333,10 +372,14 @@ export default function LessonPlayer({ lesson, prevLesson, nextLesson }: Props) 
                 ? lesson.teach_key_points
                 : lesson.teach_key_points.split("\n")
               ).map((kp, idx) => (
-                <li key={idx}>{kp}</li>
+                <li key={idx}>{kp} </li>
               ))}
             </ul>
           )}
+
+          {/* NEW: Render lesson content blocks */}
+          {lesson.lesson_content && lesson.lesson_content.map((block, idx) => renderLessonBlock(block, idx))}
+            
           <button className="px-4 py-2 bg-blue-600 text-white rounded" onClick={() => setStep("example")}>
             ➡️ Next: Example
           </button>
@@ -439,6 +482,8 @@ export default function LessonPlayer({ lesson, prevLesson, nextLesson }: Props) 
 
       {/* AI Q&A */}
       <div className="mt-8 p-4 border rounded bg-gray-50">
+       
+
         <h3 className="font-semibold mb-2">🤖 Ask a question about this lesson</h3>
         <textarea
           className="border p-2 w-full rounded mb-2"

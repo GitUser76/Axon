@@ -40,7 +40,7 @@ export default async function LessonPage(props: Props) {
   // --------------------------------------------------
   const { data: lessons } = await supabase
     .from("concept_units")
-    .select("slug, title, learning_objective, difficulty")
+    .select("slug, title, learning_objective, difficulty, lesson_content")
     .eq("subject", lesson.subject)
     .order("difficulty", { ascending: true })
     .order("title", { ascending: true }); // ensures consistent ordering
@@ -69,6 +69,11 @@ export default async function LessonPage(props: Props) {
     example_question: lesson.example_question,
     example_answer: lesson.example_answer,
     example_steps: lesson.example_steps,
+    lesson_content: lesson.lesson_content
+    ? Array.isArray(lesson.lesson_content)
+      ? lesson.lesson_content
+      : JSON.parse(lesson.lesson_content)
+    : [],
   };
 
   // --------------------------------------------------
