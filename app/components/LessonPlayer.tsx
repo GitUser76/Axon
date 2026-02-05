@@ -306,7 +306,8 @@ export default function LessonPlayer({ lesson, prevLesson, nextLesson }: Props) 
         return (
           <figure key={idx}>
             <img src={block.url} alt={block.caption || ""} className="rounded shadow mb-2" />
-            {block.caption && <figcaption className="text-sm text-gray-600">{block.caption}</figcaption>}
+            <strong>{block.caption && <figcaption className="text-sm text-gray-600">{block.caption}</figcaption>}</strong>
+            <br></br>
           </figure>
         );
       case "example":
@@ -372,14 +373,14 @@ export default function LessonPlayer({ lesson, prevLesson, nextLesson }: Props) 
                 ? lesson.teach_key_points
                 : lesson.teach_key_points.split("\n")
               ).map((kp, idx) => (
-                <li key={idx}>{kp} </li>
+                <li key={idx}>{kp}</li>
               ))}
             </ul>
           )}
-
+          <br></br>
           {/* NEW: Render lesson content blocks */}
           {lesson.lesson_content && lesson.lesson_content.map((block, idx) => renderLessonBlock(block, idx))}
-            
+          <br></br><br></br>  
           <button className="px-4 py-2 bg-blue-600 text-white rounded" onClick={() => setStep("example")}>
             ➡️ Next: Example
           </button>
