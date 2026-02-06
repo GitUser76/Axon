@@ -73,6 +73,10 @@ export default function LessonPlayer({ lesson, prevLesson, nextLesson }: Props) 
   const [aiLoading, setAiLoading] = useState(false);
 
   const [badges, setBadges] = useState<string[]>([]);
+  const MAX_ATTEMPTS = 3;
+  const [showAnswer, setShowAnswer] = useState(false);
+  const [isCorrect, setIsCorrect] = useState<boolean | null>(null);
+
 
   // ------------------ NEW: MASTERY TRACKING ------------------
   const sendProgress = async (action: string, score?: number) => {
@@ -130,69 +134,151 @@ export default function LessonPlayer({ lesson, prevLesson, nextLesson }: Props) 
   }, [studentId, lesson.slug, lesson.difficulty]);
 
   const handleCheck = async () => {
-    if (!studentId) return;
+  if (!studentId || showAnswer) return;
 
-    const keywords = currentCheck.answer_keywords?.length
-      ? currentCheck.answer_keywords
-      : [currentCheck.answer];
+  const keywords = currentCheck.answer_keywords?.length
+    ? currentCheck.answer_keywords
+    : [currentCheck.answer];
 
-    const isCorrect = keywordMatch(answer, keywords);
+  const correct = keywordMatch(answer, keywords);
+  setIsCorrect(correct);
 
-    await fetch("/api/progress/attempt", {
+  await fetch("/api/progress/attempt", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "x-student-id": studentId },
+    body: JSON.stringify({ lesson_slug: lesson.slug, correct }),
+  });
+
+  // ✅ CORRECT
+  if (correct) {
+    setFeedback("✅ Correct!");
+    sendProgress("check_correct");
+
+    if (attempts === 0) setBadges((b) => [...b, "⭐ First Try"]);
+    else setBadges((b) => [...b, "🔁 Persistence"]);
+
+    setTimeout(() => {
+      resetCheckState();
+      if (checkIndex + 1 < lesson.check.length) {
+        setCheckIndex((i) => i + 1);
+      } else {
+        startAIPractice();
+      }
+    }, 1500);
+
+    return;
+  }
+
+  // ❌ INCORRECT
+  const newAttempts = attempts + 1;
+  setAttempts(newAttempts);
+
+  // 🚨 MAX ATTEMPTS REACHED → SHOW ANSWER
+  if (newAttempts >= MAX_ATTEMPTS) {
+    setShowAnswer(true);
+    setFeedback("❌ Let's look at the correct answer.");
+    sendProgress("check_failed_max");
+    return;
+  }
+
+  // Otherwise: AI help
+  setLoadingAI(true);
+  try {
+    const mode = newAttempts === 1 ? "hint" : "reteach";
+
+    const res = await fetch("/api/ai-feedback", {
       method: "POST",
-      headers: { "Content-Type": "application/json", "x-student-id": studentId },
-      body: JSON.stringify({ lesson_slug: lesson.slug, correct: isCorrect }),
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        lessonTitle: lesson.title,
+        explanation: currentCheck.question,
+        question: currentCheck.question,
+        studentAnswer: answer,
+        correctAnswer: currentCheck.answer,
+        advisory: currentCheck.advisory,
+        mode,
+        difficulty: lesson.difficulty,
+      }),
     });
 
-    if (isCorrect) {
-      setFeedback("✅ Correct!");
-      sendProgress("check_correct");
+    const data = await res.json();
 
-      if (attempts === 0) setBadges((prev) => [...prev, "⭐ First Try"]);
-      else setBadges((prev) => [...prev, "🔁 Persistence"]);
-
-      setTimeout(() => {
-        resetCheckState();
-        if (checkIndex + 1 < lesson.check.length) {
-          setCheckIndex((i) => i + 1);
-        } else {
-          startAIPractice();
-        }
-      }, 1500);
-      return;
+    if (mode === "hint") {
+      setFeedback(`💡 Hint: ${data.response}`);
+    } else {
+      setReteachText(data.response);
+      setFeedback("Try again using the explanation above.");
     }
+  } finally {
+    setLoadingAI(false);
+  }
+};
 
-    setAttempts((prev) => prev + 1);
-    setLoadingAI(true);
-    try {
-      const mode = attempts === 0 ? "hint" : "reteach";
-      const res = await fetch("/api/ai-feedback", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          lessonTitle: lesson.title,
-          explanation: currentCheck.question,
-          question: currentCheck.question,
-          studentAnswer: answer,
-          correctAnswer: currentCheck.answer,
-          advisory: currentCheck.advisory,
-          mode,
-          difficulty: lesson.difficulty,
-        }),
-      });
-      const data = await res.json();
 
-      if (mode === "hint") setFeedback(`💡 Hint: ${data.response}`);
-      else {
-        setReteachText(data.response);
-        setFeedback("Try again using the explanation above.");
-        setAnswer("");
-        setAttempts(0);
-      }
-    } finally {
-      setLoadingAI(false);
-    }
-  };
+  // const handleCheck = async () => {
+  //   if (!studentId) return;
+
+  //   const keywords = currentCheck.answer_keywords?.length
+  //     ? currentCheck.answer_keywords
+  //     : [currentCheck.answer];
+
+  //   const isCorrect = keywordMatch(answer, keywords);
+
+  //   await fetch("/api/progress/attempt", {
+  //     method: "POST",
+  //     headers: { "Content-Type": "application/json", "x-student-id": studentId },
+  //     body: JSON.stringify({ lesson_slug: lesson.slug, correct: isCorrect }),
+  //   });
+
+  //   if (isCorrect) {
+  //     setFeedback("✅ Correct!");
+  //     sendProgress("check_correct");
+
+  //     if (attempts === 0) setBadges((prev) => [...prev, "⭐ First Try"]);
+  //     else setBadges((prev) => [...prev, "🔁 Persistence"]);
+
+  //     setTimeout(() => {
+  //       resetCheckState();
+  //       if (checkIndex + 1 < lesson.check.length) {
+  //         setCheckIndex((i) => i + 1);
+  //       } else {
+  //         startAIPractice();
+  //       }
+  //     }, 1500);
+  //     return;
+  //   }
+
+  //   setAttempts((prev) => prev + 1);
+  //   setLoadingAI(true);
+  //   try {
+  //     const mode = attempts === 0 ? "hint" : "reteach";
+  //     const res = await fetch("/api/ai-feedback", {
+  //       method: "POST",
+  //       headers: { "Content-Type": "application/json" },
+  //       body: JSON.stringify({
+  //         lessonTitle: lesson.title,
+  //         explanation: currentCheck.question,
+  //         question: currentCheck.question,
+  //         studentAnswer: answer,
+  //         correctAnswer: currentCheck.answer,
+  //         advisory: currentCheck.advisory,
+  //         mode,
+  //         difficulty: lesson.difficulty,
+  //       }),
+  //     });
+  //     const data = await res.json();
+
+  //     if (mode === "hint") setFeedback(`💡 Hint: ${data.response}`);
+  //     else {
+  //       setReteachText(data.response);
+  //       setFeedback("Try again using the explanation above.");
+  //       setAnswer("");
+  //       setAttempts(0);
+  //     }
+  //   } finally {
+  //     setLoadingAI(false);
+  //   }
+  // };
 
   const startAIPractice = async () => {
     setStep("practice");
@@ -267,6 +353,10 @@ export default function LessonPlayer({ lesson, prevLesson, nextLesson }: Props) 
     setFeedback("");
     setAttempts(0);
     setReteachText(null);
+    //
+    setReteachText(null);
+    setShowAnswer(false);
+    setIsCorrect(null);
   };
 
   const handleAiQuestion = async () => {
@@ -415,6 +505,10 @@ export default function LessonPlayer({ lesson, prevLesson, nextLesson }: Props) 
           <button className="px-4 py-2 bg-blue-600 text-white rounded" onClick={() => setStep("example")}>
            ⬅️ Back To Example
           </button><br/>
+          <p className="text-sm text-gray-500 mb-1">
+  Attempt {attempts + 1} of {MAX_ATTEMPTS}
+</p>
+<br></br>
           {reteachText && <div className="bg-blue-50 p-3 mb-2"><strong>📘 Reteach</strong><p>{reteachText}</p></div>}
           <p><strong>Check {checkIndex + 1} / {lesson.check.length}</strong></p>
           <p>{currentCheck.question}</p>
@@ -427,6 +521,28 @@ export default function LessonPlayer({ lesson, prevLesson, nextLesson }: Props) 
               {feedback}
             </p>
           )}
+          {/** providing correct answer */}
+          {showAnswer && (
+  <div className="mt-3 p-3 bg-yellow-50 border rounded">
+    <p className="font-semibold">✅ Correct answer:</p>
+    <p>{currentCheck.answer}</p>
+
+    <button
+      className="mt-3 px-4 py-2 bg-green-600 text-white rounded"
+      onClick={() => {
+        resetCheckState();
+        if (checkIndex + 1 < lesson.check.length) {
+          setCheckIndex((i) => i + 1);
+        } else {
+          startAIPractice();
+        }
+      }}
+    >
+      Continue →
+    </button>
+  </div>
+)}
+
         </div>
       )}
 
