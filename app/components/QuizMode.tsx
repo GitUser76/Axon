@@ -195,7 +195,7 @@ export default function QuizMode({
       <div className="mt-8 p-4 border rounded bg-gray-50">
        
 
-        <h3 className="font-semibold mb-2">🤖 Ask a question about this lesson</h3>
+        <h3 className="font-semibold mb-2">🚀 Ask a question about this lesson</h3>
         <textarea
           className="border p-2 w-full rounded mb-2"
           value={aiQuestion}

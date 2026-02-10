@@ -45,29 +45,32 @@ export async function POST(req: Request) {
     //const difficulty = masteryToDifficulty(mastery);
 
     // 🧠 AI prompt with GRADE BENCHMARK
-    const prompt = `
-Generate ${numQuestions} quiz questions
-for a Grade ${grade} student.
+   
+      const prompt = `
+          Generate ${numQuestions} quiz questions
+          for a Grade ${grade} student.
 
-Subject: ${subject}
-Sub-topic: ${subTopic}
+          Subject: ${subject}
+          Sub-topic: ${subTopic}
 
-Rules:
-- Language and examples must be appropriate for Grade ${grade}
-- Do NOT assume knowledge above this grade
-- provide a hint for the student to help answer the question
+          Rules:
+          - Questions, language and examples must be appropriate for Grade ${grade}
+          - Do NOT assume knowledge above this grade
+          - Difficulty should match a typical school curriculum
+          - provide a hint for the student to help answer the question
 
-Return JSON ONLY:
-[
-  {
-    "question": "...",
-    "hint":" "...",
-    "answer": "...",
-    "difficulty": 2,
-    "answer_keywords": ["...", "..."]
-  }
-]
-`;
+          Return JSON ONLY:
+          [
+            {
+              "question": "...",
+              "hint":" "...",
+              "answer": "...",
+              "units": "...",
+              "difficulty": 2,
+              "answer_keywords": ["...", "..."]
+            }
+          ]
+          `;
 
     const completion = await openai.chat.completions.create({
       model: "gpt-4o-mini",
@@ -85,6 +88,15 @@ Return JSON ONLY:
     let questions = [];
     try {
       questions = JSON.parse(cleaned);
+      //       questions = questions.map((q: any) => {
+      //   if (typeof q.answer === "string") {
+      //     return {
+      //       ...q,
+      //       answer: stripUnits(q.answer),
+      //     };
+      //   }
+      //   return q;
+      // });
     } catch {
       console.error("Quiz JSON parse failed:", cleaned);
     }
