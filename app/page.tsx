@@ -7,10 +7,16 @@ import StudentLogin, { Student as StudentType } from "@/app/components/StudentLo
 
 type Subject = { subject: string };
 
+type MasteryRow = {
+  subject: string;
+  mastery: number;
+};
+
 export default function HomePage() {
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [students, setStudents] = useState<StudentType[]>([]);
   const [activeStudent, setActiveStudent] = useState<StudentType | null>(null);
+  const [mastery, setMastery] = useState<MasteryRow[]>([]);
   const [loading, setLoading] = useState(true);
 
   const supabase = createClient();
@@ -19,30 +25,29 @@ export default function HomePage() {
   // Load students + restore session
   // ----------------------------
   useEffect(() => {
-  const storedId = localStorage.getItem("student_id");
+    const storedId = localStorage.getItem("student_id");
 
-  supabase
-    .from("students")
-    .select("id, name, email, grade")
-    .order("name")
-    .then(({ data, error }) => {
-      if (!error && data) {
-        setStudents(data);
+    supabase
+      .from("students")
+      .select("id, name, email, grade")
+      .order("name")
+      .then(({ data, error }) => {
+        if (!error && data) {
+          setStudents(data);
 
-        if (storedId) {
-          const found = data.find((s) => s.id === storedId);
-          if (found) {
-            setActiveStudent(found);
-          } else {
-            localStorage.removeItem("student_id");
+          if (storedId) {
+            const found = data.find((s) => s.id === storedId);
+            if (found) {
+              setActiveStudent(found);
+            } else {
+              localStorage.removeItem("student_id");
+            }
           }
         }
-      }
 
-      setLoading(false);
-    });
-}, []);
-
+        setLoading(false);
+      });
+  }, []);
 
   // ----------------------------
   // Load subjects BASED ON GRADE
@@ -67,21 +72,40 @@ export default function HomePage() {
   }, [activeStudent]);
 
   // ----------------------------
+  // Load mastery
+  // ----------------------------
+  useEffect(() => {
+    if (!activeStudent) return;
+
+    supabase
+      .from("mastery")
+      .select("subject, mastery")
+      .eq("student_id", activeStudent.id)
+      .then(({ data }) => {
+        if (data) setMastery(data);
+      });
+  }, [activeStudent]);
+
+  // ----------------------------
   // Logout
   // ----------------------------
   const handleLogout = () => {
     localStorage.removeItem("student_id");
     setActiveStudent(null);
     setSubjects([]);
-    location.reload(); // keeps your original behavior
+    location.reload();
   };
 
   // ----------------------------
   // Login select
   // ----------------------------
   const handleStudentSelect = (student: StudentType) => {
-    localStorage.setItem("student_id", student.id); // REQUIRED for StudentGate
+    localStorage.setItem("student_id", student.id);
     setActiveStudent(student);
+  };
+
+  const getMasteryForSubject = (subject: string) => {
+    return mastery.find((m) => m.subject === subject)?.mastery ?? 0;
   };
 
   if (loading) return <p>Loading…</p>;
@@ -108,7 +132,6 @@ export default function HomePage() {
       {/* Active student header */}
       {activeStudent && (
         <div className="mb-6 flex justify-between items-center p-4 border rounded bg-blue-50">
-
           <div>
             <p className="font-semibold">👋 {activeStudent.name}</p>
             <p className="text-sm text-gray-600">
@@ -125,13 +148,71 @@ export default function HomePage() {
         </div>
       )}
 
-      {/* Subjects */}
+      {/* ----------------------------
+          MASTERY DASHBOARD (NEW)
+      ---------------------------- */}
       {activeStudent && (
+        <div className="mb-10">
+          <h2 className="text-2xl font-bold mb-4">📊 Your Mastery</h2>
+
+          {subjects.map((s) => {
+            const masteryValue = getMasteryForSubject(s.subject);
+
+            return (
+              <div
+                key={s.subject}
+                className="mb-4 p-4 border rounded bg-white"
+              >
+                <div className="flex justify-between mb-2">
+                  <strong>
+                    {s.subject.charAt(0).toUpperCase() + s.subject.slice(1)}
+                  </strong>
+                  <span>{masteryValue}%</span>
+                </div>
+
+                <div className="w-full h-3 bg-gray-200 rounded overflow-hidden mb-3">
+                  <div
+                    className={`h-full ${
+                      masteryValue >= 80
+                        ? "bg-green-600"
+                        : masteryValue >= 50
+                        ? "bg-yellow-500"
+                        : "bg-red-500"
+                    }`}
+                    style={{ width: `${masteryValue}%` }}
+                  />
+                </div>
+
+                <div className="flex gap-3">
+                  <Link
+                    href={`/quiz/${s.subject}`}
+                    className="px-4 py-2 bg-purple-600 text-white rounded"
+                  >
+                    ⚡ Quick Quiz
+                  </Link>
+
+                  <Link
+                    href={`/subject/${s.subject}`}
+                    className="px-4 py-2 border rounded"
+                  >
+                    📘 Continue Lesson
+                  </Link>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Subjects (existing section stays) */}
+      {/* {activeStudent && (
         <>
           <h1 className="text-3xl font-bold mb-6">Choose a subject</h1>
 
           {subjects.length === 0 && (
-            <p className="text-gray-500">No subjects available at this level yet.</p>
+            <p className="text-gray-500">
+              No subjects available at this level yet.
+            </p>
           )}
 
           {subjects.map((s) => (
@@ -141,11 +222,10 @@ export default function HomePage() {
               className="block p-4 mb-3 border rounded hover:bg-gray-100"
             >
               {s.subject.charAt(0).toUpperCase() + s.subject.slice(1)}
-              &nbsp;&nbsp;&nbsp;&nbsp;
             </Link>
           ))}
         </>
-      )}
+      )} */}
     </div>
   );
 }

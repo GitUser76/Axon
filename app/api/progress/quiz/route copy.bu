@@ -1,0 +1,107 @@
+import { NextResponse } from "next/server";
+import OpenAI from "openai";
+import { createClient } from "@/app/lib/supabase";
+
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
+
+function masteryToDifficulty(mastery: number) {
+  if (mastery < 40) return "easy";
+  if (mastery < 70) return "medium";
+  return "hard";
+}
+
+export async function POST(req: Request) {
+  try {
+    const {
+      subject,
+      subTopic,
+      studentId,
+      grade,
+      numQuestions = 5,
+    } = await req.json();
+    
+        console.log(studentId + subject + subTopic + grade);
+
+    if (!studentId || !subject || !subTopic || grade == null) {
+      return NextResponse.json(
+        { error: "Missing parameters" },
+        { status: 400 }
+      );
+    }
+
+    const supabase = createClient();
+
+    // 🔍 Fetch mastery
+    const { data: masteryRow } = await supabase
+      .from("mastery")
+      .select("mastery")
+      .eq("student_id", studentId)
+      .eq("concept", subTopic)
+      .single();
+
+    const mastery = masteryRow?.mastery ?? 0;
+    const difficulty = masteryToDifficulty(mastery);
+
+    // 🧠 AI prompt with GRADE BENCHMARK
+    const prompt = `
+Generate ${numQuestions} ${difficulty} quiz questions
+for a Grade ${grade} student.
+
+Subject: ${subject}
+Sub-topic: ${subTopic}
+
+Rules:
+- Language and examples must be appropriate for Grade ${grade}
+- Do NOT assume knowledge above this grade
+- provide a hint for the student to help answer the question
+- Difficulty should be ${difficulty} within this grade level
+
+Return JSON ONLY:
+[
+  {
+    "question": "...",
+    "hint":" "...",
+    "answer": "...",
+    "difficulty": 2,
+    "answer_keywords": ["...", "..."]
+  }
+]
+`;
+
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [{ role: "user", content: prompt }],
+      temperature: 0.3,
+    });
+
+    const raw = completion.choices[0].message?.content ?? "[]";
+
+    const cleaned = raw
+      .replace(/```json/g, "")
+      .replace(/```/g, "")
+      .trim();
+
+    let questions = [];
+    try {
+      questions = JSON.parse(cleaned);
+    } catch {
+      console.error("Quiz JSON parse failed:", cleaned);
+    }
+      console.log(questions);
+
+    return NextResponse.json({
+      difficulty,
+      grade,
+      mastery,
+      questions,
+    });
+  } catch (err) {
+    console.error("Quiz generation failed", err);
+    return NextResponse.json(
+      { error: "Quiz generation failed" },
+      { status: 500 }
+    );
+  }
+}

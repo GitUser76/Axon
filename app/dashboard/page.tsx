@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/app/lib/supabase";
+import QuizProgress from "@/app/components/QuizProgress";
 
 type ProgressRow = {
   lesson_slug: string;
@@ -11,8 +12,8 @@ type ProgressRow = {
 };
 
 type MasteryRow = {
-  concept_id: string;
-  mastery_level: number;
+  concept: string;
+  mastery: number;
 };
 
 export default function DashboardPage() {
@@ -40,8 +41,8 @@ export default function DashboardPage() {
         .eq("student_id", studentId),
 
       supabase
-        .from("student_mastery")
-        .select("concept_id, mastery_level")
+        .from("mastery")
+        .select("concept, mastery")
         .eq("student_id", studentId),
     ]).then(([progressRes, masteryRes]) => {
       setProgress(progressRes.data || []);
@@ -72,14 +73,14 @@ export default function DashboardPage() {
   }, [progress]);
 
   // --------------------------------------------------
-  // 🎯 RECOMMENDED LESSON (lowest mastery, not complete)
+  // 🎯 RECOMMENDED LESSON
   // --------------------------------------------------
   useEffect(() => {
     if (!mastery.length || !progress.length) return;
 
     supabase
       .from("concept_units")
-      .select("slug, concept_id")
+      .select("slug, concept")
       .then(({ data }) => {
         if (!data) return;
 
@@ -88,8 +89,7 @@ export default function DashboardPage() {
 
         data.forEach((lesson) => {
           const level =
-            mastery.find((m) => m.concept_id === lesson.concept_id)
-              ?.mastery_level ?? 0;
+            mastery.find((m) => m.concept === lesson.concept)?.mastery ?? 0;
 
           const done = progress.some(
             (p) => p.lesson_slug === lesson.slug && p.status === "complete"
@@ -115,15 +115,15 @@ export default function DashboardPage() {
   const badges: string[] = [];
   if (completedLessons >= 1) badges.push("🟢 First Steps");
   if (completedLessons >= 5) badges.push("🔥 On a Roll");
-  if (mastery.some((m) => m.mastery_level >= 5)) badges.push("🧠 Concept Crusher");
+  if (mastery.some((m) => m.mastery >= 60)) badges.push("🧠 Concept Crusher");
   if (progress.length >= 50) badges.push("💯 Practice Pro");
 
   // --------------------------------------------------
   // 📈 XP SYSTEM
   // --------------------------------------------------
   const totalXP =
-    progress.reduce((sum, p) => sum + (p.status === "complete" ? 20 : 0), 0) +
-    mastery.reduce((sum, m) => sum + m.mastery_level * 10, 0);
+    completedLessons * 20 +
+    mastery.reduce((sum, m) => sum + m.mastery, 0);
 
   const level = Math.floor(totalXP / 100);
   const xpIntoLevel = totalXP % 100;
@@ -133,7 +133,7 @@ export default function DashboardPage() {
   // --------------------------------------------------
   const weakest = mastery.reduce<MasteryRow | null>((min, m) => {
     if (!min) return m;
-    return m.mastery_level < min.mastery_level ? m : min;
+    return m.mastery < min.mastery ? m : min;
   }, null);
 
   return (
@@ -149,7 +149,21 @@ export default function DashboardPage() {
             style={{ width: `${xpIntoLevel}%` }}
           />
         </div>
-        <p className="text-sm text-gray-600">{xpIntoLevel}/100 XP to next level</p>
+        <p className="text-sm text-gray-600">
+          {xpIntoLevel}/100 XP to next level
+        </p>
+      </div>
+
+      {/* 📊 Mastery Chart */}
+      <div className="mb-10">
+        <h3 className="font-semibold mb-3">📊 Concept Mastery</h3>
+        {mastery.length ? (
+          <QuizProgress data={mastery} />
+        ) : (
+          <p className="text-sm text-gray-500">
+            Complete quizzes to build mastery
+          </p>
+        )}
       </div>
 
       {/* Streak */}
@@ -173,12 +187,12 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* Weakest Concept */}
-      {weakest && weakest.mastery_level < 3 && (
+      {/* Weakest */}
+      {weakest && weakest.mastery < 40 && (
         <div className="p-4 border rounded bg-red-50 mb-8">
           <h3 className="font-semibold">🧠 Needs Practice</h3>
           <p className="text-sm">
-            One concept is still developing. Practicing it will boost your mastery!
+            Focus on <strong>{weakest.concept}</strong> to boost mastery.
           </p>
         </div>
       )}
@@ -187,7 +201,7 @@ export default function DashboardPage() {
       <div className="mb-8">
         <h3 className="font-semibold mb-2">🏆 Badges Earned</h3>
         <div className="flex flex-wrap gap-2">
-          {badges.length > 0 ? (
+          {badges.length ? (
             badges.map((b) => (
               <span
                 key={b}
@@ -203,23 +217,24 @@ export default function DashboardPage() {
           )}
         </div>
       </div>
-      {/* Resume Learning */}
+
+      {/* Resume */}
       <div className="p-6 border rounded bg-indigo-50 mb-8">
-        <h3 className="font-semibold mb-2">🚀 Continue Learning</h3>
-        <p className="text-sm mb-3">Jump back into your subjects and keep building mastery.</p>
+        <h3 className="font-semibold mb-2">🚀 Continue Learning Or Back to Quizing</h3>
+        <p className="text-sm mb-3">
+          Jump back into your subjects and keep building mastery.
+        </p>
         <Link
           href="/"
-          className="inline-block px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700"
+          className="inline-block px-4 py-2 bg-indigo-600 text-white rounded"
         >
-          Go to Subjects
+          Go to Subjects/Quizes
         </Link>
       </div>
 
-      {/* Encouragement */}
       <div className="text-center text-sm text-gray-600">
-        Consistency builds mastery. Keep going — you're doing great 💪
+        Consistency builds mastery. Keep going 💪
       </div>
-  
     </div>
   );
 }

@@ -507,14 +507,14 @@ export default function LessonPlayer({ lesson, prevLesson, nextLesson }: Props) 
           </button><br/>
           
           {reteachText && <div className="bg-blue-50 p-3 mb-2"><strong>📘 Reteach</strong><p>{reteachText}</p></div>}
+          <br></br>
           <p><strong>Check {checkIndex + 1} / {lesson.check.length}</strong></p>
           <p className="text-sm text-gray-500 mb-1">
             You have {MAX_ATTEMPTS} attempts to answer.
-          </p>
-          <p className="text-sm text-gray-500 mb-1">
+            &nbsp;
             <strong>{attempts + 1} of {MAX_ATTEMPTS} </strong>
           </p>
-          <br></br>
+                    
           <p>{currentCheck.question}</p>
           <input value={answer} onChange={(e) => setAnswer(e.target.value)} className="border p-2 rounded mb-2 w-full" />
           <button onClick={handleCheck} disabled={loadingAI} className="px-4 py-2 bg-blue-600 text-white rounded">
@@ -527,24 +527,24 @@ export default function LessonPlayer({ lesson, prevLesson, nextLesson }: Props) 
           )}
           {/** providing correct answer */}
           {showAnswer && (
-  <div className="mt-3 p-3 bg-yellow-50 border rounded">
-    <p className="font-semibold">✅ Correct answer:</p>
-    <p>{currentCheck.answer}</p>
+          <div className="mt-3 p-3 bg-yellow-50 border rounded">
+            <p className="font-semibold">✅ Correct answer:</p>
+            <p>{currentCheck.answer}</p>
 
-    <button
-      className="mt-3 px-4 py-2 bg-green-600 text-white rounded"
-      onClick={() => {
-        resetCheckState();
-        if (checkIndex + 1 < lesson.check.length) {
-          setCheckIndex((i) => i + 1);
-        } else {
-          startAIPractice();
-        }
-      }}
-    >
-      Continue →
-    </button>
-  </div>
+            <button
+              className="mt-3 px-4 py-2 bg-green-600 text-white rounded"
+              onClick={() => {
+                resetCheckState();
+                if (checkIndex + 1 < lesson.check.length) {
+                  setCheckIndex((i) => i + 1);
+                } else {
+                  startAIPractice();
+                }
+              }}
+            >
+              Continue →
+            </button>
+          </div>
 )}
 
         </div>
