@@ -7,6 +7,7 @@ export type QuizQuestion = {
   question: string;
   answer: string;
   hint: string,
+  units: string,
   answer_keywords?: string[]; // ✅ ADD THIS
   difficulty: number;
 };
@@ -158,7 +159,7 @@ export default function QuizMode({
       <p className="mb-4">{current.question}</p>
       <p className="mb-4">Hint: </p>
       <p className="mb-4">{current.hint}</p>
-
+      
       <input
         value={input}
         onChange={(e) => setInput(e.target.value)}

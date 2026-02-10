@@ -96,18 +96,38 @@ export default function QuizPage() {
 
   return (
     <div className="p-6 max-w-xl mx-auto">
-      {loading ? (
-        <p>Loading Quiz...</p>
-      ) : student && questions.length > 0 ? (
-        <QuizMode
-          questions={questions}
-          subject={subject}
-          subTopic={selectedSubTopic}
-          studentId={student.id}
-        />
-      ) : (
-        <p>No questions available.</p>
-      )}
+  {loading ? (
+    <div className="flex flex-col items-center justify-center py-12">
+      <p className="text-lg font-semibold text-blue-600 animate-pulse">
+        🔮 Generating your quiz questions…
+      </p>
+      <p className="text-sm text-gray-500 mt-2">
+         tailored just for you…
+      </p>
+
+      {/* Skeleton cards */}
+      <div className="w-full mt-6 space-y-4">
+        {[1, 2, 3].map((i) => (
+          <div
+            key={i}
+            className="h-16 rounded-lg bg-gray-200 animate-pulse"
+          />
+        ))}
+      </div>
     </div>
+  ) : student && questions.length > 0 ? (
+    <QuizMode
+      questions={questions}
+      subject={subject}
+      subTopic={selectedSubTopic}
+      studentId={student.id}
+    />
+  ) : (
+    <p className="text-center text-gray-500">
+      No questions available.
+    </p>
+  )}
+</div>
+
   );
 }
