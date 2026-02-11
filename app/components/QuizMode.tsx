@@ -81,12 +81,21 @@ export default function QuizMode({
   const submitAnswer = async () => {
     if (!current || feedback) return; // prevent double-submit
 
-    const keywords =
-      current.answer_keywords && current.answer_keywords.length > 0
-        ? current.answer_keywords
-        : [current.answer];
+    const normalizedInput = normalize(input);
+    const normalizedAnswer = normalize(current.answer);
 
-    const isCorrect = keywordMatch(input, keywords);
+    // ✅ 1️⃣ Exact answer match FIRST
+    let isCorrect = normalizedInput === normalizedAnswer;
+
+    // ✅ 2️⃣ Fallback → keyword match
+    if (!isCorrect) {
+      const keywords =
+        current.answer_keywords && current.answer_keywords.length > 0
+          ? current.answer_keywords
+          : [current.answer];
+
+      isCorrect = keywordMatch(input, keywords);
+    }
 
     if (isCorrect) {
       setScore((s) => s + 1);
@@ -194,8 +203,6 @@ export default function QuizMode({
        {/* AI Q&A */}
        <br></br><br></br>
       <div className="mt-8 p-4 border rounded bg-gray-50">
-       
-
         <h3 className="font-semibold mb-2">🚀 Ask a question about this lesson</h3>
         <textarea
           className="border p-2 w-full rounded mb-2"
@@ -203,10 +210,19 @@ export default function QuizMode({
           onChange={(e) => setAiQuestion(e.target.value)}
           placeholder="Type your question here..."
         />
-        <button onClick={handleAiQuestion} disabled={aiLoading || !aiQuestion.trim()} className="px-4 py-2 bg-green-900 text-white rounded">
+        <button 
+          onClick={handleAiQuestion} 
+          disabled={aiLoading || !aiQuestion.trim()} 
+          className="px-4 py-2 bg-green-900 text-white rounded"
+        >
           {aiLoading ? "Thinking..." : "Ask"}
         </button>
-        {aiAnswer && <div className="mt-2 p-2 bg-white border rounded"><strong>⭐ Answer:</strong><p>{aiAnswer}</p></div>}
+        {aiAnswer && (
+          <div className="mt-2 p-2 bg-white border rounded">
+            <strong>⭐ Answer:</strong>
+            <p>{aiAnswer}</p>
+          </div>
+        )}
       </div>
     </div>
   );
