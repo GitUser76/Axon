@@ -19,7 +19,7 @@ export default function StudentGate({ children }: { children: React.ReactNode })
   if (checking) return null;
 
   // 🌍 Public pages that should NOT require login
-  const publicRoutes = ["/", "/about", "/login"];
+  const publicRoutes = ["/", "/about", "/login", "/register"];
 
   const isPublic = publicRoutes.includes(pathname);
 

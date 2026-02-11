@@ -58,6 +58,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 Login
               </Link>
             )}
+            
+            {!isLoggedIn && (
+              <Link href="/register" className="font-semibold text-blue-600">
+                Register
+              </Link>
+            )}
 
             {isLoggedIn && (
               <button
