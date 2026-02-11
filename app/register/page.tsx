@@ -42,9 +42,9 @@ export default function RegisterPage() {
       }
 
       if (existing) {
-        localStorage.setItem("student_id", existing.id);
+        //localStorage.setItem("student_id", existing.id);
 
-        setStatusMessage("✅ You are already registered… logging you in");
+        setStatusMessage("✅ You are already registered. Please log in");
 
         setTimeout(() => {
             router.push("/");
@@ -75,8 +75,8 @@ export default function RegisterPage() {
       }
 
       // Save student locally
-      localStorage.setItem("student_id", newStudent.id);
-      setStatusMessage("✅ Registration Successul.. logging you in");
+      //localStorage.setItem("student_id", newStudent.id);
+      setStatusMessage("✅ Registration Successul.. you can now login");
 
         setTimeout(() => {
             router.push("/");
