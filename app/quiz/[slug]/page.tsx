@@ -10,6 +10,14 @@ type SubTopicRow = {
   title: string;
 };
 
+const groupBySubTopic = (rows: { sub_topic: string; title: string }[]) => {
+  return rows.reduce<Record<string, string[]>>((acc, row) => {
+    if (!acc[row.sub_topic]) acc[row.sub_topic] = [];
+    acc[row.sub_topic].push(row.title);
+    return acc;
+  }, {});
+};
+
 export default function QuizPage() {
   const params = useParams();
   const subject =
@@ -83,36 +91,51 @@ export default function QuizPage() {
   // 📚 SUBTOPIC SELECTION SCREEN
   // --------------------------------------------------
   if (!selectedSubTopic) {
-    return (
-      <div className="p-6 max-w-xl mx-auto">
-        <h1 className="text-2xl font-bold mb-4">
-          📚 {subject} Quizzes
-        </h1>
+  const grouped = groupBySubTopic(subTopics);
 
-        <p className="mb-4 text-gray-600">
-          Choose a quiz to begin:
-        </p>
+  return (
+    <div className="p-6 max-w-xl mx-auto">
+      <h1 className="text-2xl font-bold mb-4">
+        📚 {subject} Quizzes
+      </h1>
 
-        <div className="grid gap-3">
-          {subTopics.map((s, i) => (
-            <button
-              key={`${s.sub_topic}-${s.title}-${i}`} // ✅ unique key
-              onClick={() => startQuiz(s.sub_topic)}
-              className="p-4 border rounded hover:bg-gray-100 text-left"
-            >
-              <div className="font-semibold">
-                {s.sub_topic}
-              </div>
+      <p className="mb-4 text-gray-600">
+        Choose a quiz to begin:
+      </p>
 
-              <div className="text-sm text-gray-500">
-                {s.title}
-              </div>
-            </button>
-          ))}
-        </div>
+      <div className="space-y-6">
+        {Object.entries(grouped).map(([subTopic, titles]) => (
+          <div key={subTopic} className="border rounded-lg p-4 bg-white">
+            
+            {/* Sub-topic header */}
+            <h2 className="font-bold text-lg mb-3 text-indigo-700">
+              📘 {subTopic}
+            </h2>
+            <span className="text-xs text-gray-500">
+            {titles.length} quizzes. Choose one from below.
+            </span>
+
+            {/* Lessons inside sub-topic */}
+            <div className="space-y-2">
+              {titles.map((title, i) => (
+                <button
+                  key={`${subTopic}-${title}-${i}`}
+                  onClick={() => startQuiz(subTopic)}
+                  className="w-full text-left px-3 py-2 rounded hover:bg-gray-100"
+                >
+                  <div className="text-sm font-medium">
+                    {title}
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        ))}
       </div>
-    );
-  }
+    </div>
+  );
+}
+
 
   // --------------------------------------------------
   // 🔮 LOADING / QUIZ
