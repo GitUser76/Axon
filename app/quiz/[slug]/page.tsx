@@ -112,21 +112,44 @@ export default function QuizPage() {
               📘 {subTopic}
             </h2>
             <span className="text-xs text-gray-500">
-            {titles.length} quizzes. Choose one from below.
+            {titles.length} quizzes.
             </span>
 
             {/* Lessons inside sub-topic */}
             <div className="space-y-2">
               {titles.map((title, i) => (
                 <button
-                  key={`${subTopic}-${title}-${i}`}
-                  onClick={() => startQuiz(subTopic)}
-                  className="w-full text-left px-3 py-2 rounded hover:bg-gray-100"
-                >
-                  <div className="text-sm font-medium">
-                    {title}
-                  </div>
+                    key={`${subTopic}-${title}-${i}`}
+                    onClick={() => startQuiz(subTopic)}
+                    className="
+                        w-full text-left
+                        px-4 py-3
+                        rounded-lg
+                        border
+                        bg-gradient-to-r from-white to-gray-50
+                        hover:from-indigo-50 hover:to-indigo-100
+                        hover:border-indigo-400
+                        hover:shadow-md
+                        transition
+                        duration-200
+                        cursor-pointer
+                    "
+                    >
+                    <div className="flex justify-between items-center">
+                        <div className="flex items-center gap-2">
+                           
+                            <span className="font-medium text-gray-800">
+                            {title}
+                            </span>
+                        </div>
+
+                        <span className="text-sm text-indigo-500">
+                            Start →
+                        </span>
+                    </div>
+
                 </button>
+
               ))}
             </div>
           </div>
