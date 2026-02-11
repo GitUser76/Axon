@@ -16,6 +16,12 @@ type MasteryRow = {
   mastery: number;
 };
 
+type Badge = {
+  name: string;
+  xp?: number;
+  awarded_at: string;
+};
+
 export default function DashboardPage() {
   const supabase = createClient();
 
@@ -24,6 +30,8 @@ export default function DashboardPage() {
   const [streak, setStreak] = useState(0);
   const [recommended, setRecommended] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+
+  const [earnedBadges, setEarnedBadges] = useState<Badge[]>([]);
 
   const studentId =
     typeof window !== "undefined" ? localStorage.getItem("student_id") : null;
@@ -44,9 +52,16 @@ export default function DashboardPage() {
         .from("mastery")
         .select("concept, mastery")
         .eq("student_id", studentId),
-    ]).then(([progressRes, masteryRes]) => {
+
+      supabase
+        .from("student_badges")
+        .select("*")
+        .eq("student_id", studentId)
+        .order("awarded_at", { ascending: false }),
+    ]).then(([progressRes, masteryRes, badgesRes]) => {
       setProgress(progressRes.data || []);
       setMastery(masteryRes.data || []);
+      setEarnedBadges(badgesRes.data || []);
       setLoading(false);
     });
   }, [studentId]);
@@ -108,19 +123,9 @@ export default function DashboardPage() {
   if (loading) return <p className="p-6">Loading dashboard…</p>;
 
   // --------------------------------------------------
-  // 🏆 BADGES
+  // 📊 XP SYSTEM
   // --------------------------------------------------
   const completedLessons = progress.filter((p) => p.status === "complete").length;
-
-  const badges: string[] = [];
-  if (completedLessons >= 1) badges.push("🟢 First Steps");
-  if (completedLessons >= 5) badges.push("🔥 On a Roll");
-  if (mastery.some((m) => m.mastery >= 60)) badges.push("🧠 Concept Crusher");
-  if (progress.length >= 50) badges.push("💯 Practice Pro");
-
-  // --------------------------------------------------
-  // 📈 XP SYSTEM
-  // --------------------------------------------------
   const totalXP =
     completedLessons * 20 +
     mastery.reduce((sum, m) => sum + m.mastery, 0);
@@ -198,25 +203,25 @@ export default function DashboardPage() {
       )}
 
       {/* Badges */}
-      <div className="mb-8">
+    <div className="mb-8">
         <h3 className="font-semibold mb-2">🏆 Badges Earned</h3>
         <div className="flex flex-wrap gap-2">
-          {badges.length ? (
-            badges.map((b) => (
-              <span
-                key={b}
-                className="px-3 py-1 bg-yellow-100 border rounded-full text-sm"
-              >
-                {b}
-              </span>
-            ))
-          ) : (
-            <p className="text-sm text-gray-500">
-              No badges yet — keep learning!
-            </p>
-          )}
+            {earnedBadges.length ? (
+                earnedBadges.map((b, i) => (
+                    <span
+                    key={`${b.awarded_at ?? Date.now()}-${i}-${b.name}`}
+                    className="px-4 py-2 bg-yellow-200 border border-yellow-400 rounded-full text-sm font-medium shadow-sm"
+                    title={`Earned on ${new Date(b.awarded_at).toLocaleDateString()}`}
+                    >
+                    {b.name}
+                    </span>
+                ))
+                ) : (
+                <p className="text-sm text-gray-500">No badges yet — keep learning!</p>
+            )}
         </div>
-      </div>
+    </div>
+
 
       {/* Resume */}
       <div className="p-6 border rounded bg-indigo-50 mb-8">

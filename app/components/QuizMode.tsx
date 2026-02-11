@@ -8,7 +8,7 @@ export type QuizQuestion = {
   answer: string;
   hint: string,
   units: string,
-  answer_keywords?: string[]; // ✅ ADD THIS
+  answer_keywords?: string[];
   difficulty: number;
 };
 
@@ -31,27 +31,30 @@ const keywordMatch = (input: string, keywords: string[]) => {
     normalizedInput.includes(normalize(kw))
   );
 };
-//CALC BADGES
-const calculateBadges = (
-  score: number,
-  total: number,
-  difficulty: number
-) => {
+
+// --------------------
+// Badges & Rewards
+// --------------------
+const calculateRewards = (score: number, total: number, difficulty: number) => {
   const badges: string[] = [];
+  let xp = 0;
 
+  // Basic badges
   if (total > 0) badges.push("🎯 First Quiz");
-
   if (score === total) badges.push("💯 Perfect Score");
-
   if (score / total >= 0.8) badges.push("⭐ Great Job");
+  if (difficulty >= 3 && score > 0) badges.push("🧠 Brain Power");
 
-  if (difficulty >= 3 && score > 0)
-    badges.push("🧠 Brain Power");
+  // Rare/Epic/Legendary tiers
+  if (score / total === 1 && difficulty >= 4) badges.push("🌟 Legendary Genius");
+  else if (score / total >= 0.9 && difficulty >= 3) badges.push("⚡ Epic Winner");
+  else if (score / total >= 0.7 && difficulty >= 2) badges.push("🔥 Rising Star");
 
-  return badges;
+  // XP points
+  xp = score * difficulty * 10;
+
+  return { badges, xp };
 };
-
-
 
 export default function QuizMode({
   questions,
@@ -72,10 +75,13 @@ export default function QuizMode({
   const [aiQuestion, setAiQuestion] = useState("");
   const [aiAnswer, setAiAnswer] = useState("");
   const [aiLoading, setAiLoading] = useState(false);
-  
-const [earnedBadges, setEarnedBadges] = useState<string[]>([]);
-  
-   const handleAiQuestion = async () => {
+
+  // Gamification state
+  const [earnedBadges, setEarnedBadges] = useState<string[]>([]);
+  const [xpEarned, setXpEarned] = useState<number>(0);
+  const [toast, setToast] = useState<{ message: string; type: string } | null>(null);
+
+  const handleAiQuestion = async () => {
     if (!aiQuestion.trim()) return;
 
     setAiLoading(true);
@@ -85,9 +91,7 @@ const [earnedBadges, setEarnedBadges] = useState<string[]>([]);
       const res = await fetch("/api/lesson-question", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          question: aiQuestion,
-        }),
+        body: JSON.stringify({ question: aiQuestion }),
       });
 
       const data = await res.json();
@@ -102,27 +106,23 @@ const [earnedBadges, setEarnedBadges] = useState<string[]>([]);
   const current = questions[currentIndex];
 
   const submitAnswer = async () => {
-    if (!current || feedback) return; // prevent double-submit
+    if (!current || feedback) return;
 
     const normalizedInput = normalize(input);
     const normalizedAnswer = normalize(current.answer);
 
-    // ✅ 1️⃣ Exact answer match FIRST
+    // 1️⃣ Exact answer match
     let isCorrect = normalizedInput === normalizedAnswer;
 
-    // ✅ 2️⃣ Fallback → keyword match
+    // 2️⃣ Keyword fallback
     if (!isCorrect) {
-      const keywords =
-        current.answer_keywords && current.answer_keywords.length > 0
-          ? current.answer_keywords
-          : [current.answer];
-
+      const keywords = current.answer_keywords?.length
+        ? current.answer_keywords
+        : [current.answer];
       isCorrect = keywordMatch(input, keywords);
     }
 
-    if (isCorrect) {
-      setScore((s) => s + 1);
-    }
+    if (isCorrect) setScore((s) => s + 1);
 
     setFeedback(
       isCorrect
@@ -131,11 +131,9 @@ const [earnedBadges, setEarnedBadges] = useState<string[]>([]);
     );
 
     setInput("");
-
     setAiAnswer("");
     setAiQuestion("");
 
-    // Show feedback briefly, then move on
     setTimeout(async () => {
       setFeedback(null);
 
@@ -143,32 +141,34 @@ const [earnedBadges, setEarnedBadges] = useState<string[]>([]);
         setCurrentIndex((i) => i + 1);
       } else {
         setFinished(true);
-
-        // ✅ Send FINAL score (avoid stale state)
         const finalScore = isCorrect ? score + 1 : score;
 
-     // 🏆 Award badges
-      const earnedBadges = calculateBadges(
-        finalScore,
-        questions.length,
-        current.difficulty
-      );
-setEarnedBadges(earnedBadges);
+        // 🏆 Gamification: badges + XP
+        const { badges, xp } = calculateRewards(finalScore, questions.length, current.difficulty);
+        setEarnedBadges(badges);
+        setXpEarned(xp);
 
-      await fetch("/api/badges/award", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          studentId,
-          badges: earnedBadges,
-        }),
-      });
+        // Toast for each badge
+        badges.forEach((b, i) => {
+          setTimeout(() => {
+            setToast({ message: `🏆 Badge Earned: ${b}`, type: "badge" });
+            setTimeout(() => setToast(null), 2000);
+          }, i * 2000);
+        });
 
+        // Store badges in DB
+        await fetch("/api/badges/award", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ studentId, badges, xp }),
+        });
+
+        // Update mastery
         await fetch("/api/mastery/update", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            studentId: studentId,
+            studentId,
             concept: subTopic,
             difficulty: current.difficulty,
             score: finalScore,
@@ -180,42 +180,55 @@ setEarnedBadges(earnedBadges);
 
   if (finished) {
     return (
-      <div className="p-6 border rounded bg-green-50">
-        <h2 className="text-2xl font-bold mb-2">Quiz Complete 🎉</h2>
-        <p>
-          Score: {score} / {questions.length}
-        </p>
-        <p className="text-sm text-gray-600 mt-2">
-          Topic: {subject} → {subTopic}
-        </p>
+      <div className="p-6 border rounded bg-green-50 relative">
+        {toast && (
+          <div className="fixed top-5 right-5 bg-blue-600 text-white px-4 py-2 rounded shadow-lg animate-bounce">
+            {toast.message}
+          </div>
+        )}
 
-        
-        {earnedBadges.map((b) => (
-          <div key={b} className="text-lg">{b}</div>
-        ))}
-        <br></br>
+        <h2 className="text-2xl font-bold mb-2">Quiz Complete 🎉</h2>
+        <p>Score: {score} / {questions.length}</p>
+        <p className="text-sm text-gray-600 mt-2">Topic: {subject} → {subTopic}</p>
+
+        {earnedBadges.length > 0 && (
+          <div className="mt-4 p-3 border rounded bg-yellow-50">
+            <h3 className="font-semibold mb-2">🏆 Achievements Unlocked</h3>
+            <ul className="list-disc ml-6">
+              {earnedBadges.map((b) => (
+                <li key={b} className="text-lg animate-fade-in">{b}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {xpEarned > 0 && (
+          <p className="mt-2 text-green-700 font-semibold">🌟 XP Earned: {xpEarned}</p>
+        )}
+
+        <br />
         <div className="flex justify-between mt-4">
-            <strong>{<Link href={`/`}>Back Home </Link>}</strong>
+          <strong><Link href={`/`}>Back Home</Link></strong>
         </div>
       </div>
-
-      
     );
   }
 
   return (
-    <div className="p-6 border rounded">
-      <p className="text-sm text-gray-500 mb-2">
-        {subject} → {subTopic}
-      </p>
-      <h2 className="text-lg font-semibold mb-4">
-        Question {currentIndex + 1} of {questions.length}
-      </h2>
+    <div className="p-6 border rounded relative">
+      {toast && (
+        <div className="fixed top-5 right-5 bg-blue-600 text-white px-4 py-2 rounded shadow-lg animate-bounce">
+          {toast.message}
+        </div>
+      )}
+
+      <p className="text-sm text-gray-500 mb-2">{subject} → {subTopic}</p>
+      <h2 className="text-lg font-semibold mb-4">Question {currentIndex + 1} of {questions.length}</h2>
 
       <p className="mb-4">{current.question}</p>
       <p className="mb-4">Hint: </p>
       <p className="mb-4">{current.hint}</p>
-      
+
       <input
         value={input}
         onChange={(e) => setInput(e.target.value)}
@@ -233,22 +246,19 @@ setEarnedBadges(earnedBadges);
         Submit
       </button>
 
-      {/* Feedback */}
       {feedback && (
         <div className="mt-3 text-lg">
           {feedback.type === "correct" ? (
             <span className="text-green-600">✅ Correct!</span>
           ) : (
             <span className="text-red-600">
-              ❌ Wrong. Correct answer:{" "}
-              <strong>{feedback.correctAnswer}</strong>
+              ❌ Wrong. Correct answer: <strong>{feedback.correctAnswer}</strong>
             </span>
           )}
         </div>
       )}
 
-       {/* AI Q&A */}
-       <br></br><br></br>
+      <br /><br />
       <div className="mt-8 p-4 border rounded bg-gray-50">
         <h3 className="font-semibold mb-2">🚀 Ask a question about this lesson</h3>
         <textarea
@@ -257,9 +267,9 @@ setEarnedBadges(earnedBadges);
           onChange={(e) => setAiQuestion(e.target.value)}
           placeholder="Type your question here..."
         />
-        <button 
-          onClick={handleAiQuestion} 
-          disabled={aiLoading || !aiQuestion.trim()} 
+        <button
+          onClick={handleAiQuestion}
+          disabled={aiLoading || !aiQuestion.trim()}
           className="px-4 py-2 bg-green-900 text-white rounded"
         >
           {aiLoading ? "Thinking..." : "Ask"}
