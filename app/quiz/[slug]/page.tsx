@@ -5,9 +5,10 @@ import QuizMode, { QuizQuestion } from "@/app/components/QuizMode";
 import { createClient } from "@/app/lib/supabase";
 import { useParams } from "next/navigation";
 
-interface PageProps {
-  params: { slug: string };
-}
+type SubTopicRow = {
+  sub_topic: string;
+  title: string;
+};
 
 export default function QuizPage() {
   const params = useParams();
@@ -16,8 +17,7 @@ export default function QuizPage() {
       ? decodeURIComponent(params.slug)
       : "";
 
-
-  const [subTopics, setSubTopics] = useState<string[]>([]);
+  const [subTopics, setSubTopics] = useState<SubTopicRow[]>([]);
   const [selectedSubTopic, setSelectedSubTopic] = useState<string | null>(null);
   const [questions, setQuestions] = useState<QuizQuestion[]>([]);
   const [loading, setLoading] = useState(false);
@@ -25,34 +25,38 @@ export default function QuizPage() {
 
   const supabase = createClient();
 
-  // Load student from localStorage
+  // ✅ Load student
   useEffect(() => {
     const id = localStorage.getItem("student_id");
     const gradeStr = localStorage.getItem("student_grade");
     if (id && gradeStr) setStudent({ id, grade: Number(gradeStr) });
   }, []);
 
-  // Load subTopics for this subject
+  // ✅ Load subtopics
   useEffect(() => {
     const fetchSubTopics = async () => {
       try {
-        const res = await fetch(`/api/progress/quiz/subtopics?subject=${subject}`);
+        const res = await fetch(
+          `/api/progress/quiz/subtopics?subject=${subject}`
+        );
         const data = await res.json();
+
         setSubTopics(data.subTopics || []);
       } catch (err) {
         console.error(err);
       }
     };
+
     fetchSubTopics();
   }, [subject]);
 
   const startQuiz = async (subTopic: string) => {
     if (!student) return alert("No student logged in");
+
     setSelectedSubTopic(subTopic);
     setLoading(true);
 
     try {
-        console.log("=====> " + student.id);
       const res = await fetch("/api/progress/quiz", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -64,6 +68,7 @@ export default function QuizPage() {
           numQuestions: 5,
         }),
       });
+
       const data = await res.json();
       setQuestions(data.questions || []);
     } catch (err) {
@@ -74,19 +79,34 @@ export default function QuizPage() {
     }
   };
 
+  // --------------------------------------------------
+  // 📚 SUBTOPIC SELECTION SCREEN
+  // --------------------------------------------------
   if (!selectedSubTopic) {
     return (
       <div className="p-6 max-w-xl mx-auto">
-        <h1 className="text-2xl font-bold mb-4">{subject} Quiz</h1>
-        <p className="mb-4">Select a sub-topic to start:</p>
+        <h1 className="text-2xl font-bold mb-4">
+          📚 {subject} Quizzes
+        </h1>
+
+        <p className="mb-4 text-gray-600">
+          Choose a quiz to begin:
+        </p>
+
         <div className="grid gap-3">
-          {subTopics.map((s) => (
+          {subTopics.map((s, i) => (
             <button
-              key={s}
-              onClick={() => startQuiz(s)}
+              key={`${s.sub_topic}-${s.title}-${i}`} // ✅ unique key
+              onClick={() => startQuiz(s.sub_topic)}
               className="p-4 border rounded hover:bg-gray-100 text-left"
             >
-              {s}
+              <div className="font-semibold">
+                {s.sub_topic}
+              </div>
+
+              <div className="text-sm text-gray-500">
+                {s.title}
+              </div>
             </button>
           ))}
         </div>
@@ -94,40 +114,42 @@ export default function QuizPage() {
     );
   }
 
+  // --------------------------------------------------
+  // 🔮 LOADING / QUIZ
+  // --------------------------------------------------
   return (
     <div className="p-6 max-w-xl mx-auto">
-  {loading ? (
-    <div className="flex flex-col items-center justify-center py-12">
-      <p className="text-lg font-semibold text-blue-600 animate-pulse">
-        🔮 Generating your quiz questions…
-      </p>
-      <p className="text-sm text-gray-500 mt-2">
-         tailored just for you…
-      </p>
+      {loading ? (
+        <div className="flex flex-col items-center justify-center py-12">
+          <p className="text-lg font-semibold text-blue-600 animate-pulse">
+            🔮 Generating your quiz…
+          </p>
 
-      {/* Skeleton cards */}
-      <div className="w-full mt-6 space-y-4">
-        {[1, 2, 3].map((i) => (
-          <div
-            key={i}
-            className="h-16 rounded-lg bg-gray-200 animate-pulse"
-          />
-        ))}
-      </div>
+          <p className="text-sm text-gray-500 mt-2">
+            Tailored just for you
+          </p>
+
+          <div className="w-full mt-6 space-y-4">
+            {[1, 2, 3].map((i) => (
+              <div
+                key={i}
+                className="h-16 rounded-lg bg-gray-200 animate-pulse"
+              />
+            ))}
+          </div>
+        </div>
+      ) : student && questions.length > 0 ? (
+        <QuizMode
+          questions={questions}
+          subject={subject}
+          subTopic={selectedSubTopic}
+          studentId={student.id}
+        />
+      ) : (
+        <p className="text-center text-gray-500">
+          No questions available.
+        </p>
+      )}
     </div>
-  ) : student && questions.length > 0 ? (
-    <QuizMode
-      questions={questions}
-      subject={subject}
-      subTopic={selectedSubTopic}
-      studentId={student.id}
-    />
-  ) : (
-    <p className="text-center text-gray-500">
-      No questions available.
-    </p>
-  )}
-</div>
-
   );
 }

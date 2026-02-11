@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
+import { useState, useEffect } from "react";
 import QuizMode, { QuizQuestion } from "@/app/components/QuizMode";
+import { createClient } from "@/app/lib/supabase";
+import { useParams } from "next/navigation";
 
-type SubTopic = {
-  sub_topic: string;
-};
+interface PageProps {
+  params: { slug: string };
+}
 
 export default function QuizPage() {
   const params = useParams();
@@ -15,128 +16,118 @@ export default function QuizPage() {
       ? decodeURIComponent(params.slug)
       : "";
 
-  const [studentId, setStudentId] = useState<string | null>(null);
-  const [difficulty, setDifficulty] = useState<string | null>(null);
- const [subTopics, setSubTopics] = useState<string[]>([]);
 
+  const [subTopics, setSubTopics] = useState<string[]>([]);
   const [selectedSubTopic, setSelectedSubTopic] = useState<string | null>(null);
-
   const [questions, setQuestions] = useState<QuizQuestion[]>([]);
   const [loading, setLoading] = useState(false);
+  const [student, setStudent] = useState<{ id: string; grade: number } | null>(null);
 
-  // ----------------------------
-  // Load student session
-  // ----------------------------
+  const supabase = createClient();
+
+  // Load student from localStorage
   useEffect(() => {
     const id = localStorage.getItem("student_id");
-    setStudentId(id);
+    const gradeStr = localStorage.getItem("student_grade");
+    if (id && gradeStr) setStudent({ id, grade: Number(gradeStr) });
   }, []);
 
-  // ----------------------------
-  // Load sub-topics for subject
-  // ----------------------------
+  // Load subTopics for this subject
   useEffect(() => {
-    if (!subject) return;
-
-    fetch(`/api/progress/quiz/subtopics?subject=${encodeURIComponent(subject)}`)
-      .then((res) => res.json())
-      .then((data) => {
+    const fetchSubTopics = async () => {
+      try {
+        const res = await fetch(`/api/progress/quiz/subtopics?subject=${subject}`);
+        const data = await res.json();
         setSubTopics(data.subTopics || []);
-      });
+      } catch (err) {
+        console.error(err);
+      }
+    };
+    fetchSubTopics();
   }, [subject]);
 
-  const loadSubTopics = async () => {
-  const res = await fetch(`/api/quiz/subtopics?subject=${encodeURIComponent(subject)}`);
-  const data = await res.json();
-  setSubTopics(data.subTopics || []);
-};
-
-
-  // ----------------------------
-  // Start quiz after sub-topic selected
-  // ----------------------------
   const startQuiz = async (subTopic: string) => {
+    if (!student) return alert("No student logged in");
     setSelectedSubTopic(subTopic);
     setLoading(true);
 
-    const res = await fetch("/api/progress/quiz", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        subject,
-        subTopic,
-        difficulty,
-        studentId
-      }),
-    });
-
-    const data = await res.json();
-    setQuestions(data.questions || []);
-    setLoading(false);
+    try {
+        console.log("=====> " + student.id);
+      const res = await fetch("/api/progress/quiz", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          subject,
+          subTopic,
+          studentId: student.id,
+          grade: student.grade,
+          numQuestions: 5,
+        }),
+      });
+      const data = await res.json();
+      setQuestions(data.questions || []);
+    } catch (err) {
+      console.error(err);
+      setQuestions([]);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  // ----------------------------
-  // Guards
-  // ----------------------------
-  if (!studentId) {
-    return <p className="p-6">Please log in to start a quiz.</p>;
+  if (!selectedSubTopic) {
+    return (
+      <div className="p-6 max-w-xl mx-auto">
+        <h1 className="text-2xl font-bold mb-4">{subject} Quiz</h1>
+        <p className="mb-4">Select a sub-topic to start:</p>
+        <div className="grid gap-3">
+          {subTopics.map((s) => (
+            <button
+              key={s}
+              onClick={() => startQuiz(s)}
+              className="p-4 border rounded hover:bg-gray-100 text-left"
+            >
+              {s}
+            </button>
+          ))}
+        </div>
+      </div>
+    );
   }
 
-  if (!subject) {
-    return <p className="p-6">Invalid subject.</p>;
-  }
-
-  // ----------------------------
-  // Render
-  // ----------------------------
   return (
-    <div className="p-8 max-w-3xl mx-auto">
-      <h1 className="text-3xl font-bold mb-6">
-        Quiz Mode — {subject}
-      </h1>
+    <div className="p-6 max-w-xl mx-auto">
+  {loading ? (
+    <div className="flex flex-col items-center justify-center py-12">
+      <p className="text-lg font-semibold text-blue-600 animate-pulse">
+        🔮 Generating your quiz questions…
+      </p>
+      <p className="text-sm text-gray-500 mt-2">
+         tailored just for you…
+      </p>
 
-      {/* SUB-TOPIC SELECTOR */}
-      {!selectedSubTopic && (
-        <>
-          <p className="mb-4 text-gray-600">
-            Choose a topic to quiz yourself on:
-          </p>
-
-          {subTopics.length === 0 && (
-            <p className="text-gray-500">No sub-topics available.</p>
-          )}
-
-          <div className="grid gap-3">
-            {subTopics.map((subTopic) => (
-                <button
-                key={subTopic} // ✅ unique + defined
-                onClick={() => startQuiz(subTopic)}
-                className="p-4 border rounded hover:bg-gray-100 text-left"
-                >
-                {subTopic}
-                </button>
-            ))}
-            </div>
-
-        </>
-      )}
-
-      {/* LOADING */}
-      {loading && (
-        <p className="mt-6 text-gray-600">
-          Generating quiz questions…
-        </p>
-      )}
-
-      {/* QUIZ MODE */}
-      {selectedSubTopic && !loading && questions.length > 0 && (
-        <QuizMode
-          questions={questions}
-          subject={subject}
-          subTopic={selectedSubTopic}
-          studentId={studentId}
-        />
-      )}
+      {/* Skeleton cards */}
+      <div className="w-full mt-6 space-y-4">
+        {[1, 2, 3].map((i) => (
+          <div
+            key={i}
+            className="h-16 rounded-lg bg-gray-200 animate-pulse"
+          />
+        ))}
+      </div>
     </div>
+  ) : student && questions.length > 0 ? (
+    <QuizMode
+      questions={questions}
+      subject={subject}
+      subTopic={selectedSubTopic}
+      studentId={student.id}
+    />
+  ) : (
+    <p className="text-center text-gray-500">
+      No questions available.
+    </p>
+  )}
+</div>
+
   );
 }

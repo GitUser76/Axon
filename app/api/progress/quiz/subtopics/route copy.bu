@@ -16,7 +16,7 @@ export async function GET(req: Request) {
 
   const { data, error } = await supabase
     .from("concept_units")
-    .select("title, sub_topic")
+    .select("sub_topic")
     .eq("subject", subject)
     .not("sub_topic", "is", null);
 
@@ -27,23 +27,11 @@ export async function GET(req: Request) {
     );
   }
 
-  // ✅ Keep duplicates
-  const subTopics = data.map((d) => ({
-    sub_topic: d.sub_topic,
-    title: d.title,
-  }));
+  // Deduplicate
+  const subTopics = Array.from(
+    new Set(data.map((d) => d.sub_topic))
+  );
+    console.log("-----------------" + subTopics);
 
-  // ✅ Count duplicates
-  const counts: Record<string, number> = {};
-  subTopics.forEach((row) => {
-    counts[row.sub_topic] = (counts[row.sub_topic] || 0) + 1;
-  });
-
-  console.log("---- RAW SUBTOPICS ----");
-  console.log(subTopics);
-
-  return NextResponse.json({
-    subTopics,   // full list (duplicates included)
-    counts,      // duplicate counts
-  });
+  return NextResponse.json({ subTopics });
 }
