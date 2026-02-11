@@ -31,6 +31,27 @@ const keywordMatch = (input: string, keywords: string[]) => {
     normalizedInput.includes(normalize(kw))
   );
 };
+//CALC BADGES
+const calculateBadges = (
+  score: number,
+  total: number,
+  difficulty: number
+) => {
+  const badges: string[] = [];
+
+  if (total > 0) badges.push("🎯 First Quiz");
+
+  if (score === total) badges.push("💯 Perfect Score");
+
+  if (score / total >= 0.8) badges.push("⭐ Great Job");
+
+  if (difficulty >= 3 && score > 0)
+    badges.push("🧠 Brain Power");
+
+  return badges;
+};
+
+
 
 export default function QuizMode({
   questions,
@@ -51,6 +72,8 @@ export default function QuizMode({
   const [aiQuestion, setAiQuestion] = useState("");
   const [aiAnswer, setAiAnswer] = useState("");
   const [aiLoading, setAiLoading] = useState(false);
+  
+const [earnedBadges, setEarnedBadges] = useState<string[]>([]);
   
    const handleAiQuestion = async () => {
     if (!aiQuestion.trim()) return;
@@ -124,6 +147,23 @@ export default function QuizMode({
         // ✅ Send FINAL score (avoid stale state)
         const finalScore = isCorrect ? score + 1 : score;
 
+     // 🏆 Award badges
+      const earnedBadges = calculateBadges(
+        finalScore,
+        questions.length,
+        current.difficulty
+      );
+setEarnedBadges(earnedBadges);
+
+      await fetch("/api/badges/award", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          studentId,
+          badges: earnedBadges,
+        }),
+      });
+
         await fetch("/api/mastery/update", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -149,10 +189,17 @@ export default function QuizMode({
           Topic: {subject} → {subTopic}
         </p>
 
-        {/* <div className="flex justify-between mt-4">
-            {<Link href={`/`}>Back Home </Link>}
-        </div> */}
+        
+        {earnedBadges.map((b) => (
+          <div key={b} className="text-lg">{b}</div>
+        ))}
+        <br></br>
+        <div className="flex justify-between mt-4">
+            <strong>{<Link href={`/`}>Back Home </Link>}</strong>
+        </div>
       </div>
+
+      
     );
   }
 
