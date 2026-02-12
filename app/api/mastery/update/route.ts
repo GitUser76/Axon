@@ -1,14 +1,16 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/app/lib/supabase";
 
-export async function POST(req) {
+export async function POST(req: Request) {
   try {
-    const {
-      studentId,
-      concept,
-      difficulty, // ✅ now a NUMBER
-      score,      // expected 0 → 1
-    } = await req.json();
+  const body: {
+    studentId: string;
+    concept: string;
+    difficulty: string;
+    score: number;
+  } = await req.json();
+
+  const { studentId, concept, difficulty, score } = body;
 
     // ✅ Validate payload
     if (
