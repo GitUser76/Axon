@@ -16,7 +16,7 @@ export default function AboutPage() {
         so I built this app to stay engaged with his lessons and the current syllabus.
 
         With AI and gamified learning, my goal was to create a space where mastery, feedback, and 
-        practice are personalized — making learning both effective and fun for parent and child alike.
+        practice are personalized, making learning both effective and fun for parent and child alike.
       </p>
 
       <p style={{ marginTop: 16 }}>
@@ -25,7 +25,7 @@ export default function AboutPage() {
       </p>
 
       <p style={{ marginTop: 16 }}>
-        If you would like to get involved drop me an email at: . And i will create you an account.
+        If you would like to get involved drop me an email at: <strong>team.appsnapstudy@gmail.com </strong>
       </p>
 
       <p style={{ marginTop: 24 }}>

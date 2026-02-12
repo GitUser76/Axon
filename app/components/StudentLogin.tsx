@@ -82,7 +82,7 @@ export default function StudentLogin({ students: propStudents, onSelect }: Stude
           <br></br>
           <p>
             if you want to be a early adopter (try it out whilst it's being developed) then 
-            email me: 
+            email me: <strong>team.appsnapstudy@gmail.com</strong>
           </p>
         </div>
 
