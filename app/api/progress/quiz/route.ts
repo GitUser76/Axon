@@ -8,7 +8,8 @@ const openai = new OpenAI({
 
 function masteryToDifficulty(mastery: number) {
   if (mastery < 40) return "easy";
-  if (mastery < 70) return "medium";
+  if (mastery > 40 && mastery < 60) return "standard"; //mastery < 70
+  if (mastery > 60 && mastery < 80) return "multi-step";
   return "hard";
 }
 
@@ -41,22 +42,22 @@ export async function POST(req: Request) {
       .eq("concept", subTopic)
       .single();
 
-    //const mastery = masteryRow?.mastery ?? 0;
-    //const difficulty = masteryToDifficulty(mastery);
+    const mastery = masteryRow?.mastery ?? 0;
+    const difficulty = masteryToDifficulty(mastery);
 
     // 🧠 AI prompt with GRADE BENCHMARK
    
       const prompt = `
           Generate ${numQuestions} quiz questions
-          for a Grade ${grade} student.
+          for a school year ${grade} student.
 
           Subject: ${subject}
           Sub-topic: ${subTopic}
 
           Rules:
-          - Questions, language and examples must be appropriate for Grade ${grade}
+          - Questions, language and examples must be appropriate for school year ${grade}
           - Do NOT assume knowledge above this grade
-          - Difficulty should match a typical school curriculum
+          - Difficulty should be ${difficulty} within this grade level and should match a typical school curriculum
           - provide a hint for the student to help answer the question
 
           Return JSON ONLY:
@@ -66,7 +67,7 @@ export async function POST(req: Request) {
               "hint":" "...",
               "answer": "...",
               "units": "...",
-              "difficulty": 2,
+              "difficulty": ${grade},
               "answer_keywords": ["...", "..."]
             }
           ]
@@ -100,6 +101,8 @@ export async function POST(req: Request) {
     } catch {
       console.error("Quiz JSON parse failed:", cleaned);
     }
+      console.log("Grade: " + grade);
+      console.log("Mastery: " + mastery);
       console.log(questions);
 
     return NextResponse.json({

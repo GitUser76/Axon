@@ -1,30 +1,20 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/app/lib/supabase";
 
-type Difficulty = "easy" | "medium" | "hard";
-
-export async function POST(req: Request) {
-    
+export async function POST(req) {
   try {
     const {
       studentId,
       concept,
-      difficulty,
-      score, // expected 0 → 1
-    }: {
-      studentId: string;
-      concept: string;
-      difficulty: Difficulty;
-      score: number;
+      difficulty, // ✅ now a NUMBER
+      score,      // expected 0 → 1
     } = await req.json();
-
-    
 
     // ✅ Validate payload
     if (
       !studentId ||
       !concept ||
-      !difficulty ||
+      difficulty === undefined ||
       score === undefined
     ) {
       return NextResponse.json(
@@ -33,9 +23,22 @@ export async function POST(req: Request) {
       );
     }
 
+
+    // Multipliers for difficulty
+    const multipliers: Record<number, number> = {
+        7: 0.7,
+        8: 1.0,
+        9: 1.15,
+        10: 1.3,
+        11: 1.5,
+        12: 1.9,
+        13: 2.5,
+        14: 3,
+    };
+
     const supabase = createClient();
 
-    // 1️⃣ Get existing mastery (safe fetch)
+    // 1️⃣ Fetch existing mastery
     const { data: existing, error: fetchError } = await supabase
       .from("mastery")
       .select("mastery")
@@ -47,20 +50,22 @@ export async function POST(req: Request) {
 
     let mastery = existing?.mastery ?? 0;
 
-    // 2️⃣ Difficulty multiplier
-    let difficultyMultiplier = 1;
-    if (difficulty === "easy") difficultyMultiplier = 0.7;
-    if (difficulty === "hard") difficultyMultiplier = 1.3;
+    // 2️⃣ Difficulty multiplier (numeric logic)
+    const difficultyNumber = Number(difficulty);
+    const difficultyMultiplier = multipliers[difficultyNumber] ?? 1;
 
-    // 3️⃣ Calculate mastery delta
-    // score is 0–1, max ~15 points per quiz
+    // 3️⃣ Mastery delta
     const delta = Math.round(score * 15 * difficultyMultiplier);
 
-    mastery = Math.max(0, Math.min(100, mastery + delta));
+    mastery = Math.max(0, Math.min(5000, mastery + delta));
+
     console.log("==========================");
-    console.log(studentId);
-    console.log(concept);
-    console.log(mastery);
+    console.log("Student:", studentId);
+    console.log("Concept:", concept);
+    console.log("Score:", score);
+    console.log("Difficulty:", difficulty);
+    console.log("Delta:", delta);
+    console.log("New Mastery:", mastery);
     console.log("==========================");
 
     // 4️⃣ Upsert mastery
@@ -79,16 +84,16 @@ export async function POST(req: Request) {
       );
 
     if (upsertError) throw upsertError;
-      
 
     return NextResponse.json({
       success: true,
       mastery,
       delta,
     });
-    
+
   } catch (err) {
     console.error("Mastery update failed:", err);
+
     return NextResponse.json(
       { error: "Failed to update mastery" },
       { status: 500 }

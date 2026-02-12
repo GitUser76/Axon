@@ -43,12 +43,12 @@ const calculateRewards = (score: number, total: number, difficulty: number) => {
   if (total > 0) badges.push("🎯 First Quiz");
   if (score === total) badges.push("💯 Perfect Score");
   if (score / total >= 0.8) badges.push("⭐ Great Job");
-  if (difficulty >= 3 && score > 0) badges.push("🧠 Brain Power");
+  if (difficulty >= 7 && score > 4) badges.push("🧠 Brain Power");
 
   // Rare/Epic/Legendary tiers
-  if (score / total === 1 && difficulty >= 4) badges.push("🌟 Legendary Genius");
-  else if (score / total >= 0.9 && difficulty >= 3) badges.push("⚡ Epic Winner");
-  else if (score / total >= 0.7 && difficulty >= 2) badges.push("🔥 Rising Star");
+  if (score / total === 1 && difficulty >= 7) badges.push("🌟 Legendary Genius");
+  else if (score / total >= 0.9 && difficulty >= 7) badges.push("⚡ Epic Winner");
+  else if (score / total >= 0.7 && difficulty >= 7) badges.push("🔥 Rising Star");
 
   // XP points
   xp = score * difficulty * 10;
