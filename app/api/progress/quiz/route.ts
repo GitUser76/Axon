@@ -7,11 +7,16 @@ const openai = new OpenAI({
 });
 
 function masteryToDifficulty(mastery: number) {
-  if (mastery < 40) return "easy";
-  if (mastery > 40 && mastery < 60) return "standard"; //mastery < 70
-  if (mastery > 60 && mastery < 80) return "multi-step";
-  return "hard";
+  if (mastery < 50) return "very_easy";
+  if (mastery < 100) return "easy";
+  if (mastery < 150) return "basic";
+  if (mastery < 200) return "standard";
+  if (mastery < 275) return "intermediate";
+  if (mastery < 350) return "challenging";
+  if (mastery < 425) return "advanced";
+  return "very_hard";
 }
+
 
 export async function POST(req: Request) {
   try {

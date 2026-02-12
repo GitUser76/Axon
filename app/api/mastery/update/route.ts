@@ -51,6 +51,7 @@ export async function POST(req: Request) {
     if (fetchError) throw fetchError;
 
     let mastery = existing?.mastery ?? 0;
+    console.log("Old Mastery:", mastery);
 
     // 2️⃣ Difficulty multiplier (numeric logic)
     const difficultyNumber = Number(difficulty);
