@@ -188,14 +188,14 @@ export default function HomePage() {
                     href={`/quiz/${s.subject}`}
                     className="px-4 py-2 bg-purple-600 text-white rounded"
                   >
-                    ⚡ Quick Quiz
+                    ⚡ Snap Quiz
                   </Link>
 
                   <Link
                     href={`/subject/${s.subject}`}
                     className="px-4 py-2 border rounded"
                   >
-                    📘 Continue Lesson
+                    📘 Snap Lesson
                   </Link>
                 </div>
               </div>
