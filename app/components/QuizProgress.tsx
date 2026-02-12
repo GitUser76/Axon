@@ -52,7 +52,7 @@ export default function QuizProgress({
             stroke="#6b7280"
           />
           <YAxis
-            domain={[0, 100]}
+            domain={[0, 150]}
             tick={{ fontSize: 12 }}
             stroke="#6b7280"
           />
