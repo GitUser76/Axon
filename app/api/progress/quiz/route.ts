@@ -86,18 +86,25 @@ export async function POST(req: Request) {
       .replace(/```/g, "")
       .trim();
 
+      const stripUnits = (text: string) => {
+        // Keep only digits, decimal points, minus sign
+        const match = text.match(/-?\d+(\.\d+)?/);
+        return match ? match[0] : text;
+      };
+
+
     let questions = [];
     try {
       questions = JSON.parse(cleaned);
-      //       questions = questions.map((q: any) => {
-      //   if (typeof q.answer === "string") {
-      //     return {
-      //       ...q,
-      //       answer: stripUnits(q.answer),
-      //     };
-      //   }
-      //   return q;
-      // });
+            questions = questions.map((q: any) => {
+        if (typeof q.answer === "string") {
+          return {
+            ...q,
+            answer: stripUnits(q.answer),
+          };
+        }
+        return q;
+      });
     } catch {
       console.error("Quiz JSON parse failed:", cleaned);
     }
