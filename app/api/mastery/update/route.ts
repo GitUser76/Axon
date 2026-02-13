@@ -100,6 +100,7 @@ export async function POST(req: Request) {
       success: true,
       mastery,
       delta,
+      xp,
     });
 
   } catch (err) {
