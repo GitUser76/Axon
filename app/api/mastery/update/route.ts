@@ -75,6 +75,7 @@ export async function POST(req: Request) {
     console.log("Difficulty:", difficulty);
     console.log("Delta:", delta);
     console.log("New Mastery:", mastery);
+    console.log("XP:", xp);
     console.log("==========================");
 
     // 4️⃣ Upsert mastery

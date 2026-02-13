@@ -6,8 +6,8 @@ import Link from "next/link";
 export type QuizQuestion = {
   question: string;
   answer: string;
-  hint: string,
-  units: string,
+  hint: string;
+  units: string;
   answer_keywords?: string[];
   difficulty: number;
 };
@@ -35,7 +35,11 @@ const keywordMatch = (input: string, keywords: string[]) => {
 // --------------------
 // Badges & Rewards
 // --------------------
-const calculateRewards = (score: number, total: number, difficulty: number) => {
+const calculateRewards = (
+  score: number,
+  total: number,
+  difficulty: number
+) => {
   const badges: string[] = [];
   let xp = 0;
 
@@ -46,11 +50,14 @@ const calculateRewards = (score: number, total: number, difficulty: number) => {
   if (difficulty >= 7 && score > 4) badges.push("🧠 Brain Power");
 
   // Rare/Epic/Legendary tiers
-  if (score / total === 1 && difficulty >= 7) badges.push("🌟 Legendary Genius");
-  else if (score / total >= 0.9 && difficulty >= 7) badges.push("⚡ Epic Winner");
-  else if (score / total >= 0.7 && difficulty >= 7) badges.push("🔥 Rising Star");
+  if (score / total === 1 && difficulty >= 7)
+    badges.push("🌟 Legendary Genius");
+  else if (score / total >= 0.9 && difficulty >= 7)
+    badges.push("⚡ Epic Winner");
+  else if (score / total >= 0.7 && difficulty >= 7)
+    badges.push("🔥 Rising Star");
 
-  // XP points
+  // XP points (local prediction)
   xp = score * difficulty * 10;
 
   return { badges, xp };
@@ -71,7 +78,7 @@ export default function QuizMode({
     correctAnswer?: string;
   } | null>(null);
 
-  //AI Question
+  // AI Question
   const [aiQuestion, setAiQuestion] = useState("");
   const [aiAnswer, setAiAnswer] = useState("");
   const [aiLoading, setAiLoading] = useState(false);
@@ -79,7 +86,10 @@ export default function QuizMode({
   // Gamification state
   const [earnedBadges, setEarnedBadges] = useState<string[]>([]);
   const [xpEarned, setXpEarned] = useState<number>(0);
-  const [toast, setToast] = useState<{ message: string; type: string } | null>(null);
+  const [toast, setToast] = useState<{
+    message: string;
+    type: string;
+  } | null>(null);
 
   const handleAiQuestion = async () => {
     if (!aiQuestion.trim()) return;
@@ -143,28 +153,29 @@ export default function QuizMode({
         setFinished(true);
         const finalScore = isCorrect ? score + 1 : score;
 
-        // 🏆 Gamification: badges + XP
-        const { badges, xp } = calculateRewards(finalScore, questions.length, current.difficulty);
-        setEarnedBadges(badges);
-        setXpEarned(xp);
+        // 🏆 Gamification: badges + XP (local prediction)
+        const { badges, xp } = calculateRewards(
+          finalScore,
+          questions.length,
+          current.difficulty
+        );
 
-        // Toast for each badge
+        setEarnedBadges(badges);
+        setXpEarned(xp); // optimistic XP
+
+        // Toast for badges
         badges.forEach((b, i) => {
           setTimeout(() => {
-            setToast({ message: `🏆 Badge Earned: ${b}`, type: "badge" });
+            setToast({
+              message: `🏆 Badge Earned: ${b}`,
+              type: "badge",
+            });
             setTimeout(() => setToast(null), 2000);
           }, i * 2000);
         });
 
-        // Store badges in DB
-        await fetch("/api/badges/award", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ studentId, badges, xp }),
-        });
-
-        // Update mastery
-        await fetch("/api/mastery/update", {
+        // ✅ Update mastery + XP (server truth)
+        const masteryRes = await fetch("/api/mastery/update", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -172,6 +183,23 @@ export default function QuizMode({
             concept: subTopic,
             difficulty: current.difficulty,
             score: finalScore,
+          }),
+        });
+
+        const masteryData = await masteryRes.json();
+
+        if (masteryData?.xp !== undefined) {
+          setXpEarned(masteryData.xp); // ✅ override with DB XP
+        }
+
+        // ✅ Store badges using real XP
+        await fetch("/api/badges/award", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            studentId,
+            badges,
+            xp: masteryData?.xp ?? xp,
           }),
         });
       }
@@ -187,28 +215,47 @@ export default function QuizMode({
           </div>
         )}
 
-        <h2 className="text-2xl font-bold mb-2">Quiz Complete 🎉</h2>
-        <p>Score: {score} / {questions.length}</p>
-        <p className="text-sm text-gray-600 mt-2">Topic: {subject} → {subTopic}</p>
+        <h2 className="text-2xl font-bold mb-2">
+          Quiz Complete 🎉
+        </h2>
+
+        <p>
+          Score: {score} / {questions.length}
+        </p>
+
+        <p className="text-sm text-gray-600 mt-2">
+          Topic: {subject} → {subTopic}
+        </p>
 
         {earnedBadges.length > 0 && (
           <div className="mt-4 p-3 border rounded bg-yellow-50">
-            <h3 className="font-semibold mb-2">🏆 Achievements Unlocked</h3>
+            <h3 className="font-semibold mb-2">
+              🏆 Achievements Unlocked
+            </h3>
             <ul className="list-disc ml-6">
               {earnedBadges.map((b) => (
-                <li key={b} className="text-lg animate-fade-in">{b}</li>
+                <li
+                  key={b}
+                  className="text-lg animate-fade-in"
+                >
+                  {b}
+                </li>
               ))}
             </ul>
           </div>
         )}
 
         {xpEarned > 0 && (
-          <p className="mt-2 text-green-700 font-semibold">🌟 XP Earned: {xpEarned}</p>
+          <p className="mt-2 text-green-700 font-semibold">
+            🌟 XP Earned: {xpEarned}
+          </p>
         )}
 
         <br />
         <div className="flex justify-between mt-4">
-          <strong><Link href={`/`}>Back Home</Link></strong>
+          <strong>
+            <Link href={`/`}>Back Home</Link>
+          </strong>
         </div>
       </div>
     );
@@ -222,17 +269,27 @@ export default function QuizMode({
         </div>
       )}
 
-      <p className="text-sm text-gray-500 mb-2">{subject} → {subTopic}</p>
-      <h2 className="text-lg font-semibold mb-4">Question {currentIndex + 1} of {questions.length}</h2>
+      <p className="text-sm text-gray-500 mb-2">
+        {subject} → {subTopic}
+      </p>
+
+      <h2 className="text-lg font-semibold mb-4">
+        Question {currentIndex + 1} of {questions.length}
+      </h2>
 
       <p className="mb-4">{current.question}</p>
-      <p className="mb-4">Hint: </p>
-      <p className="mb-4">{current.hint}</p>
+
+      <p className="mb-1">Hint:</p>
+      <p className="mb-4 text-gray-600">
+        {current.hint}
+      </p>
 
       <input
         value={input}
         onChange={(e) => setInput(e.target.value)}
-        onKeyDown={(e) => e.key === "Enter" && submitAnswer()}
+        onKeyDown={(e) =>
+          e.key === "Enter" && submitAnswer()
+        }
         className="w-full border p-2 rounded mb-3"
         placeholder="Your answer"
         disabled={!!feedback}
@@ -249,24 +306,37 @@ export default function QuizMode({
       {feedback && (
         <div className="mt-3 text-lg">
           {feedback.type === "correct" ? (
-            <span className="text-green-600">✅ Correct!</span>
+            <span className="text-green-600">
+              ✅ Correct!
+            </span>
           ) : (
             <span className="text-red-600">
-              ❌ Wrong. Correct answer: <strong>{feedback.correctAnswer}</strong>
+              ❌ Wrong. Correct answer:{" "}
+              <strong>
+                {feedback.correctAnswer}
+              </strong>
             </span>
           )}
         </div>
       )}
 
-      <br /><br />
+      <br />
+      <br />
+
       <div className="mt-8 p-4 border rounded bg-gray-50">
-        <h3 className="font-semibold mb-2">🚀 Ask a question about this lesson</h3>
+        <h3 className="font-semibold mb-2">
+          🚀 Ask a question about this lesson
+        </h3>
+
         <textarea
           className="border p-2 w-full rounded mb-2"
           value={aiQuestion}
-          onChange={(e) => setAiQuestion(e.target.value)}
+          onChange={(e) =>
+            setAiQuestion(e.target.value)
+          }
           placeholder="Type your question here..."
         />
+
         <button
           onClick={handleAiQuestion}
           disabled={aiLoading || !aiQuestion.trim()}
@@ -274,6 +344,7 @@ export default function QuizMode({
         >
           {aiLoading ? "Thinking..." : "Ask"}
         </button>
+
         {aiAnswer && (
           <div className="mt-2 p-2 bg-white border rounded">
             <strong>⭐ Answer:</strong>
