@@ -14,6 +14,7 @@ type ProgressRow = {
 type MasteryRow = {
   concept: string;
   mastery: number;
+  xp?: number;
 };
 
 type Badge = {
@@ -50,7 +51,7 @@ export default function DashboardPage() {
 
       supabase
         .from("mastery")
-        .select("concept, mastery")
+        .select("concept, mastery, xp")
         .eq("student_id", studentId),
 
       supabase
@@ -125,13 +126,15 @@ export default function DashboardPage() {
   // --------------------------------------------------
   // 📊 XP SYSTEM
   // --------------------------------------------------
-  const completedLessons = progress.filter((p) => p.status === "complete").length;
-  const totalXP =
-    completedLessons * 20 +
-    mastery.reduce((sum, m) => sum + m.mastery, 0);
+//   const completedLessons = progress.filter((p) => p.status === "complete").length;
+//   const totalXP =
+//     completedLessons * 20 +
+//     mastery.reduce((sum, m) => sum + m.mastery, 0);
 
-  const level = Math.floor(totalXP / 100);
-  const xpIntoLevel = totalXP % 100;
+    const totalXP = mastery.reduce((sum, m) => sum + (m.xp ?? 0), 0);
+
+    const level = Math.floor(totalXP / 100);
+    const xpIntoLevel = totalXP % 100;
 
   // --------------------------------------------------
   // 🧠 WEAKEST CONCEPT

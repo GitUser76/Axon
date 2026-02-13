@@ -43,7 +43,7 @@ export async function POST(req: Request) {
     // 1️⃣ Fetch existing mastery
     const { data: existing, error: fetchError } = await supabase
       .from("mastery")
-      .select("mastery, xp")
+      .select("mastery")
       .eq("student_id", studentId)
       .eq("concept", concept)
       .maybeSingle();
@@ -52,7 +52,6 @@ export async function POST(req: Request) {
 
     let mastery = existing?.mastery ?? 0;
     console.log("Old Mastery:", mastery);
-    let xp = existing?.xp ?? 0;
 
     // 2️⃣ Difficulty multiplier (numeric logic)
     const difficultyNumber = Number(difficulty);
@@ -60,13 +59,8 @@ export async function POST(req: Request) {
 
     // 3️⃣ Mastery delta
     const delta = Math.round(score * 15 * difficultyMultiplier);
+
     mastery = Math.max(0, Math.min(5000, mastery + delta));
-    // 4️⃣ XP calculation
-    let xpGain = Math.round(10 * difficultyMultiplier);
-
-    if (score === 1) xpGain += 5; // perfect score bonus
-
-    xp += xpGain;
 
     console.log("==========================");
     console.log("Student:", studentId);
@@ -85,7 +79,6 @@ export async function POST(req: Request) {
           student_id: studentId,
           concept,
           mastery,
-          xp,
           updated_at: new Date().toISOString(),
         },
         {
