@@ -162,7 +162,7 @@ export default function HomePage() {
               <div
                 key={s.subject}
                 className="mb-4 p-4 border rounded bg-white"
-              >
+              > 
                 <div className="flex justify-between mb-2">
                   <strong>
                     {s.subject.charAt(0).toUpperCase() + s.subject.slice(1)}

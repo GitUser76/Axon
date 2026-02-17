@@ -27,6 +27,24 @@ export default function RegisterPage() {
     setLoading(true);
     setError("");
 
+    await fetch("/api/send-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+            to: form.email,
+            subject: "Welcome to SnapStudy 🎉",
+            text: `Welcome, ${form.name}! Let’s start learning 🚀`,
+            html: `
+            <div style="font-family:Verdana; padding:20px;">
+                <h2>🎉 Welcome to SnapStudy, ${form.name}!</h2>
+                <p style="margin:6px 0 22px; color:#000000; font-size:14px;"> Learning just got fun 🚀</p>
+                <p style="margin:6px 0 22px; color:#000000; font-size:14px;">You can log in using your email.</p>
+            </div>
+            `
+        }),
+    });
+
+
     try {
       // Check if student exists
       const { data: existing, error: fetchError } = await supabase

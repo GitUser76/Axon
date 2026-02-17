@@ -1,49 +1,43 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/app/lib/supabase";
 
+type Difficulty =
+  | "easy"
+  | "standard"
+  | "multi-step"
+  | "challenging"
+  | "advanced"
+  | "expert"
+  | "master"
+  | "legendary";
+
 export async function POST(req: Request) {
   try {
-  const body: {
-    studentId: string;
-    concept: string;
-    difficulty: string;
-    score: number;
-  } = await req.json();
+    const {
+      studentId,
+      concept,
+      difficulty,
+      score, // 0 → 1
+    }: {
+      studentId: string;
+      concept: string;
+      difficulty: Difficulty;
+      score: number;
+    } = await req.json();
 
-  const { studentId, concept, difficulty, score } = body;
-
-    // ✅ Validate payload
-    if (
-      !studentId ||
-      !concept ||
-      difficulty === undefined ||
-      score === undefined
-    ) {
+    if (!studentId || !concept || score === undefined) {
       return NextResponse.json(
         { error: "Missing required parameters" },
         { status: 400 }
       );
     }
 
-
-    // Multipliers for difficulty
-    const multipliers: Record<number, number> = {
-        7: 0.7,
-        8: 1.0,
-        9: 1.15,
-        10: 1.3,
-        11: 1.5,
-        12: 1.9,
-        13: 2.5,
-        14: 3,
-    };
-
     const supabase = createClient();
 
-    // 1️⃣ Fetch existing mastery
+    // 1️⃣ Fetch existing row
     const { data: existing, error: fetchError } = await supabase
       .from("mastery")
-      .select("mastery")
+      .select("mastery, xp")
       .eq("student_id", studentId)
       .eq("concept", concept)
       .maybeSingle();
@@ -51,27 +45,41 @@ export async function POST(req: Request) {
     if (fetchError) throw fetchError;
 
     let mastery = existing?.mastery ?? 0;
-    console.log("Old Mastery:", mastery);
+    let xp = existing?.xp ?? 0;
 
-    // 2️⃣ Difficulty multiplier (numeric logic)
-    const difficultyNumber = Number(difficulty);
-    const difficultyMultiplier = multipliers[difficultyNumber] ?? 1;
+    // 2️⃣ Difficulty multipliers
+    const difficultyMap: Record<Difficulty, number> = {
+      easy: 0.7,
+      standard: 1,
+      "multi-step": 1.1,
+      challenging: 1.2,
+      advanced: 1.3,
+      expert: 1.4,
+      master: 1.5,
+      legendary: 1.7,
+    };
+
+    const multiplier = difficultyMap[difficulty] ?? 1;
 
     // 3️⃣ Mastery delta
-    const delta = Math.round(score * 15 * difficultyMultiplier);
+    const masteryDelta = Math.round(score * 12 * multiplier);
 
-    mastery = Math.max(0, Math.min(5000, mastery + delta));
+    mastery = Math.max(0, Math.min(500, mastery + masteryDelta));
 
-    console.log("==========================");
-    console.log("Student:", studentId);
-    console.log("Concept:", concept);
-    console.log("Score:", score);
-    console.log("Difficulty:", difficulty);
-    console.log("Delta:", delta);
-    console.log("New Mastery:", mastery);
-    console.log("==========================");
+    // 4️⃣ XP calculation
+    let xpGain = Math.round(10 * multiplier);
 
-    // 4️⃣ Upsert mastery
+    if (score === 1) xpGain += 5; // perfect score bonus
+
+    xp += xpGain;
+
+    console.log("==== MASTERY UPDATE ====");
+    console.log({ studentId, concept, score, difficulty });
+    console.log({ masteryDelta, xpGain });
+    console.log({ mastery, xp });
+    console.log("========================");
+
+    // 5️⃣ Upsert
     const { error: upsertError } = await supabase
       .from("mastery")
       .upsert(
@@ -79,6 +87,7 @@ export async function POST(req: Request) {
           student_id: studentId,
           concept,
           mastery,
+          xp,
           updated_at: new Date().toISOString(),
         },
         {
@@ -91,12 +100,12 @@ export async function POST(req: Request) {
     return NextResponse.json({
       success: true,
       mastery,
-      delta,
+      masteryDelta,
+      xp,
+      xpGain,
     });
-
   } catch (err) {
     console.error("Mastery update failed:", err);
-
     return NextResponse.json(
       { error: "Failed to update mastery" },
       { status: 500 }

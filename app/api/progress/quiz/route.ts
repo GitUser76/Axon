@@ -53,30 +53,59 @@ export async function POST(req: Request) {
     // 🧠 AI prompt with GRADE BENCHMARK
    
       const prompt = `
-          Generate ${numQuestions} quiz questions
-          for a school year ${grade} student.
+        You are an expert educational quiz generator.
 
-          Subject: ${subject}
-          Sub-topic: ${subTopic}
+        Task:
+        Generate ${numQuestions} quiz questions for a Year ${grade} student.
 
-          Rules:
-          - Questions, language and examples must be appropriate for school year ${grade}
-          - Do NOT assume knowledge above this grade
-          - Difficulty should be ${difficulty} within this grade level and should match a typical school curriculum
-          - provide a hint for the student to help answer the question
+        Student Level:
+        - School Year: ${grade}
+        - Subject: ${subject}
+        - Sub-topic: ${subTopic}
+        - Target Difficulty Level: ${difficulty}
 
-          Return JSON ONLY:
-          [
-            {
-              "question": "...",
-              "hint":" "...",
-              "answer": "...",
-              "units": "...",
-              "difficulty": ${grade},
-              "answer_keywords": ["...", "..."]
-            }
-          ]
-          `;
+        Strict Rules:
+        - Questions MUST match the knowledge level of a typical Year ${grade} student
+        - Do NOT include concepts above this grade
+        - Keep wording clear, short, and age-appropriate
+        - Prefer real-world word problems where relevant
+        - Avoid trick questions
+        - Each question must have ONE clear correct answer
+        - Provide a helpful hint (not the solution)
+
+        Difficulty Guidance:
+        - Difficulty refers to challenge within Year ${grade}, NOT higher-grade material
+        - ${difficulty} difficulty should feel appropriately challenging but solvable
+
+        Style:
+        - Realistic school-style questions
+        - Short and clear
+        - No unnecessary complexity
+        - Natural classroom tone
+
+        Example Style:
+        A school buys 45 textbooks costing £8.50 each. What is the total cost?
+        Answer: 382.50
+
+        Output Requirements (CRITICAL):
+        - Return JSON ONLY
+        - No markdown
+        - No extra text
+        - Valid JSON array
+
+        JSON Format:
+        [
+          {
+            "question": "...",
+            "hint": "...",
+            "answer": "...",
+            "units": "...",
+            "difficulty": ${difficulty},
+            "answer_keywords": ["...", "..."]
+          }
+        ]
+        `;
+
 
     const completion = await openai.chat.completions.create({
       model: "gpt-4o-mini",
