@@ -82,7 +82,7 @@ export default function StudentLogin({ students: propStudents, onSelect }: Stude
             that adapts to their level.
           </p>
           <br></br>
-          <p className="mfont-medium">
+          <p className="font-medium">
             if you have any questions/feedback and want to be a early adopter (try it out whilst it's being developed) then 
             email me: <br></br>
             <strong className="break-all">team.appsnapstudy@gmail.com</strong>
