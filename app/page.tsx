@@ -124,9 +124,13 @@ export default function HomePage() {
       <p>
         We’re inviting a small group of students to try an AI learning tool that adapts to their level.
       </p>
+      
+      <br /><br />
+      
 
       <br /><br />
-
+    
+        
       {/* Login */}
       {!activeStudent && !loading && (
         <div className="mb-8">

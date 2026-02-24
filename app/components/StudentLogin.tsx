@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { createClient } from "../lib/supabase";
+import Link from "next/link";
 
 export type Student = {
   id: string;
@@ -86,6 +87,7 @@ export default function StudentLogin({ students: propStudents, onSelect }: Stude
             email me: <br></br>
             <strong className="break-all">team.appsnapstudy@gmail.com</strong>
           </p>
+       
         </div>
 
         {/* Title */}
@@ -108,7 +110,13 @@ export default function StudentLogin({ students: propStudents, onSelect }: Stude
         >
           Login
         </button>
+        <br></br><br></br>
 
+        <p className="font-medium">  
+          <Link href="/register" className="font-semibold text-blue-600">
+            Register
+          </Link> as a Student
+        </p>
         {/* Error */}
         {error && (
           <p className="text-red-600 text-sm mt-4 text-center">{error}</p>
