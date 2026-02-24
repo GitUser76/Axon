@@ -113,8 +113,14 @@ export default function HomePage() {
   return (
     <div className="p-8 max-w-3xl mx-auto">
       <p className="font-medium">
-        🚀 This platform is in early access. Progress is saved, and lessons improve over time.
+        🚀 This platform is in early access. 
+        Let's make learning more fun, interactive, and adaptive for students.
+        Progress is saved, and lessons improve over time.
       </p>
+      <p className="font-medium">
+            You can explore lessons, try our AI tools, 
+            and track your progress. Students get badges, mastery tracking, and more as they grow their skills
+          </p>
       <p>
         We’re inviting a small group of students to try an AI learning tool that adapts to their level.
       </p>

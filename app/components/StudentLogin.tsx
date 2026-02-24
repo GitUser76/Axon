@@ -71,6 +71,7 @@ export default function StudentLogin({ students: propStudents, onSelect }: Stude
       <div className="w-full max-w-md bg-white shadow-lg rounded-xl p-8 border">
         {/* Intro */}
         <div className="mb-6 text-sm text-gray-600 space-y-2">
+        
           <p className="font-medium">
             🚀 This platform is in early access. Progress is saved, and lessons
             improve over time.
