@@ -73,7 +73,7 @@ export default function QuizPage() {
           subTopic,
           studentId: student.id,
           grade: student.grade,
-          numQuestions: 5,
+          numQuestions: 7,
         }),
       });
 

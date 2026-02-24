@@ -25,7 +25,7 @@ export async function POST(req: Request) {
       subTopic,
       studentId,
       grade,
-      numQuestions = 5,
+      numQuestions = 7, 
     } = await req.json();
     
         console.log(studentId + subject + subTopic + grade);

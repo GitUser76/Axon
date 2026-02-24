@@ -63,7 +63,7 @@ export default function SubjectPage() {
     supabase
       .from("concept_units")
       .select("title, slug, sub_topic, difficulty, concept_id")
-      .eq("subject", subject)
+      .eq("subject", decodeURIComponent(subject))
       .lte("difficulty", grade)
       .order("difficulty", { ascending: true })
       .then(({ data: lessonsData }) => {
@@ -141,10 +141,10 @@ export default function SubjectPage() {
 
   return (
     <div style={{ maxWidth: 800, margin: "0 auto", padding: 24 }}>
-      <Breadcrumbs items={[{ label: "Home", href: "/" }, { label: subject }]} />
+      <Breadcrumbs items={[{ label: "Home", href: "/" }, { label: decodeURIComponent(subject) }]} />
 
       <h1 style={{ marginBottom: 24, fontWeight: "bold", color: "#1310a5" }}>
-        📚 {subject}
+        📚 {decodeURIComponent(subject)}
       </h1>
 
       
@@ -164,7 +164,7 @@ export default function SubjectPage() {
       {/* SUBJECT MASTERY */}
       <div style={{ marginBottom: 30, padding: 16, borderRadius: 12, background: "#eef2ff", border: "1px solid #c7d2fe" }}>
         <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
-          <strong>📈 {subject} Mastery</strong>
+          <strong>📈 {decodeURIComponent(subject)} Mastery</strong>
           <span>{subjectMastery}%</span>
         </div>
         <div style={{ height: 12, background: "#ffffff", borderRadius: 6, overflow: "hidden" }}>
