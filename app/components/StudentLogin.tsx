@@ -71,24 +71,7 @@ export default function StudentLogin({ students: propStudents, onSelect }: Stude
     <div className="min-h-[60vh] flex items-center justify-center px-4">
       <div className="w-full max-w-md bg-white shadow-lg rounded-xl p-8 border">
         {/* Intro */}
-        <div className="mb-6 text-sm text-gray-600 space-y-2">
         
-          <p className="font-medium">
-            🚀 This platform is in early access. Progress is saved, and lessons
-            improve over time.
-          </p>
-          <p>
-            We’re inviting a small group of students to try an AI learning tool
-            that adapts to their level.
-          </p>
-          <br></br>
-          <p className="font-medium">
-            if you have any questions/feedback and want to be a early adopter (try it out whilst it's being developed) then 
-            email me: <br></br>
-            <strong className="break-all">team.appsnapstudy@gmail.com</strong>
-          </p>
-       
-        </div>
 
         {/* Title */}
         <h2 className="text-2xl font-bold mb-5 text-center">Student Login</h2>
