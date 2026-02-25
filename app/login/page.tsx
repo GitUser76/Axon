@@ -75,8 +75,9 @@ export default function StudentLogin({ students: propStudents, onSelect }: Stude
         {/* Intro */}
         <div className="mb-6 text-sm text-gray-600 space-y-2">
           <p className="font-medium">
-            🚀 This platform is in early access. Progress is saved, and lessons
-            improve over time.
+           🚀 SnapStudy is currently in early access as we build a learning experience that’s 
+            more engaging, interactive, and adaptive for students. Your progress is saved, 
+            and the platform continues to improve over time.
           </p>
           <p>
             We’re inviting a small group of students to try an AI learning tool
