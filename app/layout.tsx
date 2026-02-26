@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Image from "next/image";
+import Footer from "@/app/components/Footer";
 
 import StudentGate from "@/app/components/StudentGate";
 import StudentSwitcher from "@/app/components/StudentSwitcher";
@@ -56,7 +57,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               priority
             />
           </Link> 
-          
+
           <nav className="mb-6 flex gap-8 text-lg items-center justify-center">
             
 
@@ -110,6 +111,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
           {/* Gate protected pages */}
           {isPublicPage ? children : <StudentGate>{children}</StudentGate>}
+          
+        <Footer />
         </div>
       </body>
     </html>
