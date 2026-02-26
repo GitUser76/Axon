@@ -5,6 +5,7 @@ import Link from "next/link";
 import { createClient } from "./lib/supabase";
 import StudentLogin, { Student as StudentType } from "@/app/components/StudentLogin";
 
+
 type Subject = { subject: string };
 
 type MasteryRow = {
@@ -112,6 +113,7 @@ export default function HomePage() {
 
   return (
     <div className="p-8 max-w-3xl mx-auto">
+
       <p className="font-medium">
             Welcome to SnapStudy Early Access 🚀
           </p>

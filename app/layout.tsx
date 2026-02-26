@@ -5,6 +5,7 @@ import { useState, useEffect } from "react";
 import { usePathname } from "next/navigation";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import Image from "next/image";
 
 import StudentGate from "@/app/components/StudentGate";
 import StudentSwitcher from "@/app/components/StudentSwitcher";
@@ -42,8 +43,19 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en">
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+        
+      
         <div className="w-full px-6 py-4">
+          <Image
+            src="/images/SnapStudy-App.png"
+            alt="SnapStudy learning illustration"
+            width={150}
+            height={200}
+            className="mx-auto"
+            priority
+          />
           <nav className="mb-6 flex gap-8 text-lg items-center justify-center">
+            
 
             <Link href="/">Home</Link>
             <Link href="/about">About</Link>
