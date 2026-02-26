@@ -46,14 +46,17 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         
       
         <div className="w-full px-6 py-4">
-          <Image
-            src="/images/SnapStudy-App.png"
-            alt="SnapStudy learning illustration"
-            width={150}
-            height={200}
-            className="mx-auto"
-            priority
-          />
+         <Link href="/">
+            <Image
+              src="/images/SnapStudy-App.png"
+              alt="SnapStudy learning illustration"
+              width={150}
+              height={200}
+              className="mx-auto"
+              priority
+            />
+          </Link> 
+          
           <nav className="mb-6 flex gap-8 text-lg items-center justify-center">
             
 
