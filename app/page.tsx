@@ -116,7 +116,7 @@ export default function HomePage() {
 
       <p className="font-medium">
             Welcome to SnapStudy Early Access 🚀
-          </p>
+      </p>
       <p className="font-medium">
         This platform is in early access. 
         Let's make learning more fun, interactive, and adaptive for students.
@@ -126,35 +126,33 @@ export default function HomePage() {
             You can explore lessons, try our AI tools, 
             and track your progress. Students get badges, mastery tracking, and more as they grow their skills
           </p>
-      <p>
+      <p className="font-medium">
         We’re inviting a small group of students to try an AI learning tool that adapts to their level.
       </p>
-      <div className="mb-6 text-sm text-gray-600 space-y-2">
-        
-          <p className="font-medium">
-            SnapStudy is currently in early access as we build a learning experience that’s 
-            more engaging, interactive, and adaptive for students. Your progress is saved, 
-            and the platform continues to improve over time.
-          </p>
-          <p className="font-medium">
-            Explore lessons, experiment with our AI-powered tools, 
-            and track your development as you learn. Students can earn badges, 
-            build mastery, and unlock new achievements as their skills grow
-          </p>
-          <p className="font-medium">
-            We cover all core subjects from KS3 upwards, supporting learners as they advance through school.
-          </p>
-          <p className="font-medium">
-           We’re inviting a small group of students to be among the first to experience an AI learning platform that adapts to their individual level
-          </p>
-          <br></br>
-          <p className="font-medium">
-            if you have any questions/feedback and want to be a early adopter (try it out whilst it's being developed) then 
-            email me: <br></br>
-            <strong className="break-all">team.appsnapstudy@gmail.com</strong>
-          </p>
+      <p className="font-medium">
+        SnapStudy is currently in early access as we build a learning experience that’s 
+        more engaging, interactive, and adaptive for students. Your progress is saved, 
+        and the platform continues to improve over time.
+      </p>
+      <p className="font-medium">
+        Explore lessons, experiment with our AI-powered tools, 
+        and track your development as you learn. Students can earn badges, 
+        build mastery, and unlock new achievements as their skills grow
+      </p>
+      <p className="font-medium">
+        We cover all core subjects from KS3 upwards, supporting learners as they advance through school.
+      </p>
+      <p className="font-medium">
+        We’re inviting a small group of students to be among the first to experience an AI learning platform that adapts to their individual level
+      </p>
+      <br></br>
+      <p className="font-medium">
+        if you have any questions/feedback and want to be a early adopter (try it out whilst it's being developed) then 
+        email me: <br></br>
+        <strong className="break-all">team.appsnapstudy@gmail.com</strong>
+      </p>
        
-        </div>
+    
       <br /><br />
           
         

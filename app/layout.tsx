@@ -51,7 +51,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <Image
               src="/images/SnapStudy-App.png"
               alt="SnapStudy learning illustration"
-              width={150}
+              width={200}
               height={200}
               className="mx-auto"
               priority
