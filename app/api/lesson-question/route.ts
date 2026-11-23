@@ -14,11 +14,15 @@ export async function POST(req: NextRequest) {
     }
 
     const prompt = `
-You are a friendly tutor for a student learning ${lessonTitle}.
-Lesson content: ${explanation || "No explanation provided"}
-Student asks: ${question}
-Answer in a clear, concise way appropriate for a Key Stage 3 student.
+- Act like a teacher for a student learning ${lessonTitle}
+- Explain the concept Lesson content: ${explanation || "No explanation provided"}
+- Student asks: ${question}
+- Guide how to answer the question correctly, Is it Text or Numerical
+- Provide an example
+- Keep it under 5 sentences
+- Be encouraging
 `;
+
 
     const completion = await openai.chat.completions.create({
       model: "gpt-4o-mini",

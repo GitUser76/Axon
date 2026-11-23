@@ -49,6 +49,7 @@ export async function POST(req: Request) {
 
     const mastery = masteryRow?.mastery ?? 0;
     const difficulty = masteryToDifficulty(mastery);
+    console.log("Difficulty ==> " + difficulty);
 
     // 🧠 AI prompt with GRADE BENCHMARK
    
