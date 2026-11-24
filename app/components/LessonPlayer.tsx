@@ -373,6 +373,7 @@ export default function LessonPlayer({ lesson, prevLesson, nextLesson }: Props) 
           question: aiQuestion,
           lessonTitle: lesson.title,
           explanation: lesson.teach_intro || lesson.explanation?.text,
+          studentId: studentId,
         }),
       });
 
