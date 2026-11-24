@@ -79,6 +79,11 @@ export default function TeachMePage({ lesson, prevLesson, nextLesson }: Props) {
   const [showAnswer, setShowAnswer] = useState(false);
   const [isCorrect, setIsCorrect] = useState<boolean | null>(null);
 
+  // image state
+  const [aiImage, setAiImage] = useState<string | null>(null);
+  const [aiImageAlt, setAiImageAlt] = useState("");
+  const [aiImageSource, setAiImageSource] = useState<string | null>(null);
+
 
  
   const normalize = (v: string) => v.toLowerCase().trim().replace(/[^\w\s]/g, "");
@@ -192,6 +197,9 @@ export default function TeachMePage({ lesson, prevLesson, nextLesson }: Props) {
 
   setAiLoading(true);
   setAiAnswer("");
+  setAiImage(null);
+  setAiImageAlt("");
+  setAiImageSource(null);
 
   try {
     console.log("Calling Teach Me API:", aiQuestion);
@@ -216,6 +224,9 @@ export default function TeachMePage({ lesson, prevLesson, nextLesson }: Props) {
     console.log("Teach Me API response:", data);
 
     setAiAnswer(data.answer || "Sorry, no answer received.");
+    setAiImage(data.imageUrl || null);
+    setAiImageAlt(data.imageAlt || "Educational image");
+    setAiImageSource(data.imageSource || null);
 
   } catch (err) {
     console.error("Teach Me API error:", err);
@@ -259,7 +270,45 @@ export default function TeachMePage({ lesson, prevLesson, nextLesson }: Props) {
         >
           {aiLoading ? "Thinking..." : "Ask"}
         </button>
-        {aiAnswer && <div className="mt-2 p-2 bg-white border rounded"><strong>⭐ Answer:</strong><p>{aiAnswer}</p></div>}
+        {aiAnswer && (
+  <div className="mt-4 p-5 bg-white border rounded-xl shadow-sm">
+
+    <h3 className="mb-3 text-lg font-bold text-slate-900">
+      ⭐ Answering your question
+    </h3>
+
+    {/* Text explanation */}
+    <div className="text-slate-800 leading-relaxed whitespace-pre-wrap">
+      {aiAnswer}
+    </div>
+
+    {/* Educational image */}
+    {aiImage && (
+      <div className="mt-6">
+
+        <img
+          src={aiImage}
+          alt={aiImageAlt}
+          className="w-full max-h-[400px] object-contain rounded-lg border bg-white"
+          loading="lazy"
+        />
+
+        {aiImageSource && (
+          <a
+            href={aiImageSource}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-2 block text-xs text-slate-500 underline"
+          >
+            Image source and licence
+          </a>
+        )}
+
+      </div>
+    )}
+
+  </div>
+)}
       </div>
     </div>
   );
