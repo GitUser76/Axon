@@ -255,7 +255,7 @@ export default function TeachMePage({ lesson, prevLesson, nextLesson }: Props) {
           type="button"
           onClick={handleAiQuestion}
           disabled={aiLoading || !aiQuestion.trim()}
-          className="px-4 py-2 bg-blue-900 text-white rounded"
+          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded transition-colors"    
         >
           {aiLoading ? "Thinking..." : "Ask"}
         </button>
